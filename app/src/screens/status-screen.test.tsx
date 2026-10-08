@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
 
 import type { LineStatus, StatusResponse } from '@/api/status';
 
@@ -49,6 +50,25 @@ describe('StatusScreen', () => {
     expect(screen.getByText('OUTRAS LINHAS')).toBeOnTheScreen();
     expect(screen.getByLabelText('Remover linha 9 Esmeralda dos favoritos')).toBeOnTheScreen();
     expect(JSON.parse((await AsyncStorage.getItem('favorites')) ?? '[]')).toEqual([9]);
+  });
+
+  it('scrolls to the top after favoriting, so the line does not vanish from view', async () => {
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+    await render(<StatusScreen load={async () => day} />);
+
+    await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: true });
+  });
+
+  it('does not scroll when removing a favorite', async () => {
+    await AsyncStorage.setItem('favorites', '[9]');
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+    await render(<StatusScreen load={async () => day} />);
+
+    await fireEvent.press(await screen.findByLabelText('Remover linha 9 Esmeralda dos favoritos'));
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it('keeps showing the last data with a warning when an update fails', async () => {

@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
-import { useCallback, useEffect, useReducer, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -21,6 +21,7 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
   const t = useTheme();
   const [state, dispatch] = useReducer(statusReducer, initialStatusState);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
 
   const refresh = useCallback(async () => {
     dispatch({ type: 'refresh' });
@@ -39,9 +40,15 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
   }, []);
 
   const toggleFavorite = (code: number) => {
-    const next = favorites.includes(code) ? favorites.filter((c) => c !== code) : [...favorites, code];
+    const adding = !favorites.includes(code);
+    const next = adding ? [...favorites, code] : favorites.filter((c) => c !== code);
+    // Animate the line moving between sections instead of jumping.
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setFavorites(next);
     saveFavorites(next);
+    // A favorited line moves to the top section; follow it so it does not
+    // vanish from view when it was favorited far down the list.
+    if (adding) scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   const { data } = state;
@@ -87,6 +94,7 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
       {night && <Banner theme={t} title="Operação encerrada — volta às 4h40" icon={icons.moon} />}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={state.refreshing && !!data} onRefresh={refresh} tintColor={t.text} />

@@ -1,0 +1,112 @@
+[
+    {
+        "LinhaId": 1,
+        "Nome": "Azul",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "M",
+        "DataGeracao": "2026-10-07T22:26:24"
+    },
+    {
+        "LinhaId": 2,
+        "Nome": "Verde",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "M",
+        "DataGeracao": "2026-10-07T22:26:24"
+    },
+    {
+        "LinhaId": 3,
+        "Nome": "Vermelha",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "M",
+        "DataGeracao": "2026-10-07T22:26:24"
+    },
+    {
+        "LinhaId": 4,
+        "Nome": "Amarela",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "4",
+        "DataGeracao": "2026-10-07T22:26:00"
+    },
+    {
+        "LinhaId": 5,
+        "Nome": "Lilás",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "4",
+        "DataGeracao": "2026-10-07T22:26:27.0769759-03:00"
+    },
+    {
+        "LinhaId": 7,
+        "Nome": "Rubi",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "Linha opera normalmente em toda sua extensão.",
+        "Tipo": "7",
+        "DataGeracao": "2026-10-07T22:26:27.1221688-03:00"
+    },
+    {
+        "LinhaId": 8,
+        "Nome": "Diamante",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "4",
+        "DataGeracao": "2026-10-07T22:26:27.0769759-03:00"
+    },
+    {
+        "LinhaId": 9,
+        "Nome": "Esmeralda",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "4",
+        "DataGeracao": "2026-10-07T22:26:27.0769759-03:00"
+    },
+    {
+        "LinhaId": 10,
+        "Nome": "Turquesa",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "C",
+        "DataGeracao": "2026-10-07T22:26:12"
+    },
+    {
+        "LinhaId": 11,
+        "Nome": "Coral",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "C",
+        "DataGeracao": "2026-10-07T22:26:12"
+    },
+    {
+        "LinhaId": 12,
+        "Nome": "Safira",
+        "Cor": null,
+        "Status": "Operação Normal",
+        "StatusCor": null,
+        "Descricao": "",
+        "Tipo": "C",
+        "DataGeracao": "2026-10-07T22:26:12"
+    }
+]

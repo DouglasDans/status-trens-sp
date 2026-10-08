@@ -1,0 +1,157 @@
+{
+    "Status": true,
+    "Message": "",
+    "MessageDebug": "",
+    "Data": [
+        {
+            "Code": 1,
+            "ColorName": "Azul",
+            "ColorHex": "#00378c",
+            "Line": "Linha 1 - Azul",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": "Operação Normal"
+        },
+        {
+            "Code": 2,
+            "ColorName": "Verde",
+            "ColorHex": "#186d55",
+            "Line": "Linha 2 - Verde",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": "Operação Normal"
+        },
+        {
+            "Code": 3,
+            "ColorName": "Vermelha",
+            "ColorHex": "#f51200",
+            "Line": "Linha 3 - Vermelha",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": "Operação Normal"
+        },
+        {
+            "Code": 4,
+            "ColorName": "Amarela",
+            "ColorHex": "#efba00",
+            "Line": "Linha 4-Amarela",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": ""
+        },
+        {
+            "Code": 5,
+            "ColorName": "Lilás",
+            "ColorHex": "#9271b1",
+            "Line": "Linha 5-Lilás",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": null
+        },
+        {
+            "Code": 6,
+            "ColorName": "LARANJA",
+            "ColorHex": "#f27c00",
+            "Line": "LARANJA",
+            "StatusCode": "OperacaoEncerrada",
+            "StatusLabel": "Operação Encerrada",
+            "StatusColor": "cinza",
+            "Description": ""
+        },
+        {
+            "Code": 7,
+            "ColorName": "RUBI",
+            "ColorHex": "#c80857",
+            "Line": "RUBI",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": "Linha opera normalmente em toda sua extensão."
+        },
+        {
+            "Code": 8,
+            "ColorName": "Diamante",
+            "ColorHex": "#949488",
+            "Line": "Linha 8-Diamante",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": null
+        },
+        {
+            "Code": 9,
+            "ColorName": "Esmeralda",
+            "ColorHex": "#219896",
+            "Line": "Linha 9-Esmeralda",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": null
+        },
+        {
+            "Code": 10,
+            "ColorName": "Turquesa",
+            "ColorHex": "#1c8aab",
+            "Line": "Turquesa",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": ""
+        },
+        {
+            "Code": 11,
+            "ColorName": "Coral",
+            "ColorHex": "#f46c55",
+            "Line": "Coral",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": ""
+        },
+        {
+            "Code": 12,
+            "ColorName": "Safira",
+            "ColorHex": "#1f2086",
+            "Line": "Safira",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": ""
+        },
+        {
+            "Code": 13,
+            "ColorName": "Jade",
+            "ColorHex": "#29b352",
+            "Line": "Jade",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": ""
+        },
+        {
+            "Code": 15,
+            "ColorName": "Prata",
+            "ColorHex": "#848d90",
+            "Line": "Linha 15 - Prata",
+            "StatusCode": "OperacaoNormal",
+            "StatusLabel": "Operação Normal",
+            "StatusColor": "verde",
+            "Description": "Operação Normal"
+        },
+        {
+            "Code": 17,
+            "ColorName": "Ouro",
+            "ColorHex": "#d58405",
+            "Line": "Linha 17 - Ouro",
+            "StatusCode": "OperacaoEncerrada",
+            "StatusLabel": "Operação Encerrada",
+            "StatusColor": "cinza",
+            "Description": "Operação Encerrada"
+        }
+    ]
+}

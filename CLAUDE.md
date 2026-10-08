@@ -13,7 +13,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 | Layer | Choice |
 |---|---|
 | Backend | Go 1.26 (`backend/`, module `github.com/DouglasDans/status-trens-sp/backend`) |
-| App | React Native + Expo, Android only (`app/`, created in Phase 1d) |
+| App | React Native 0.86 + Expo SDK 57, TypeScript, Android only (`app/`) |
 | Later | AWS Lambda `sa-east-1`, DynamoDB, EventBridge Scheduler, Firebase Cloud Messaging topics |
 
 ## Commands
@@ -26,7 +26,16 @@ go vet ./...         # static checks
 go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
 ```
 
-Both must pass before any commit. App commands (`yarn test`, `yarn lint`) are added when `app/` exists.
+App (run from `app/`, Yarn 4 with `nodeLinker: node-modules` — Metro does not support PnP):
+
+```sh
+yarn test          # jest-expo + Testing Library v14 (render/fireEvent are async: always await)
+yarn lint          # expo lint (ESLint flat config)
+npx tsc --noEmit   # type check
+npx expo start     # Expo Go on the phone; set EXPO_PUBLIC_API_URL in app/.env (see .env.example)
+```
+
+All of the above (backend and app) must pass before any commit.
 
 ## Structure
 
@@ -42,7 +51,15 @@ backend/
     ├── httpapi/    # GET /status: merges catalog + readings, 30s cache, serves stale data if sources fail
     ├── store/      # Phase 2 (DynamoDB)
     └── notify/     # Phase 2 (FCM)
-app/                # Expo app
+app/                # Expo SDK 57, React Native 0.86, expo-router
+└── src/
+    ├── app/        # routes: _layout (fonts), index (status), sobre
+    ├── api/        # GET /status client + contract types
+    ├── domain/     # pure logic: grouping, late-night detection, screen state reducer
+    ├── favorites/  # AsyncStorage persistence
+    ├── theme/      # tokens from the Claude Design reference, contrast helpers
+    ├── components/ # LineRow, Banner, Skeleton, StatusDot
+    └── screens/    # StatusScreen (takes `load` as a prop for tests)
 ```
 
 Create packages only when the first test needs them.
@@ -61,6 +78,14 @@ Create packages only when the first test needs them.
 - Table-driven tests for normalization and change detection.
 - HTTP clients tested with `net/http/httptest` serving real recorded responses from `testdata/`.
 - No test touches the real network or real AWS.
+
+## App conventions
+
+- Visual reference: Claude Design project "Status Trens SP v2" (via the `claude_design` MCP). Tokens live in `src/theme/tokens.ts`; keep them in sync with it.
+- Status is never shown by color alone: every state has color + icon + label (`stateVisual`).
+- The row shows the source `label` (e.g. "Atividade Programada") with the canonical state's color and icon.
+- Logic that can be pure goes in `src/domain` and is unit tested; screens get dependencies as props.
+- Operator logos are behind `SHOW_OPERATOR_LOGO` in `src/config.ts` (trademark risk); a dashed text chip is the placeholder until real logos exist.
 
 ## Domain essentials
 

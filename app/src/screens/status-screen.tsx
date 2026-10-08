@@ -1,0 +1,194 @@
+import { Link } from 'expo-router';
+import { useCallback, useEffect, useReducer, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
+
+import { fetchStatus, type LineStatus, type StatusResponse } from '@/api/status';
+import { Banner } from '@/components/banner';
+import { LineRow } from '@/components/line-row';
+import { Skeleton } from '@/components/skeleton';
+import { API_URL } from '@/config';
+import { formatClock, groupLines, isNight } from '@/domain/lines';
+import { initialStatusState, statusReducer } from '@/domain/status-state';
+import { loadFavorites, saveFavorites } from '@/favorites/storage';
+import { fonts, icons, star, type Theme } from '@/theme/tokens';
+import { useTheme } from '@/theme/use-theme';
+
+type Props = { load?: () => Promise<StatusResponse> };
+
+export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
+  const t = useTheme();
+  const [state, dispatch] = useReducer(statusReducer, initialStatusState);
+  const [favorites, setFavorites] = useState<number[]>([]);
+
+  const refresh = useCallback(async () => {
+    dispatch({ type: 'refresh' });
+    try {
+      dispatch({ type: 'success', data: await load() });
+    } catch {
+      dispatch({ type: 'failure' });
+    }
+  }, [load]);
+
+  useEffect(() => {
+    refresh();
+    loadFavorites().then(setFavorites);
+    // Load once on mount; later loads are user-driven.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleFavorite = (code: number) => {
+    const next = favorites.includes(code) ? favorites.filter((c) => c !== code) : [...favorites, code];
+    setFavorites(next);
+    saveFavorites(next);
+  };
+
+  const { data } = state;
+  const clock = data ? formatClock(new Date(data.updatedAt)) : '';
+  const night = data ? isNight(data.lines) : false;
+  const updated = state.refreshing && data ? 'Atualizando…' : data ? `Atualizado às ${clock}` : 'Carregando…';
+
+  return (
+    <SafeAreaView style={[styles.screen, { backgroundColor: t.bg }]}>
+      <View style={styles.header}>
+        <View style={styles.headerTexts}>
+          <Text style={[styles.title, { color: t.text }]}>Status Trens SP</Text>
+          <Pressable onPress={refresh} disabled={state.refreshing} accessibilityRole="button">
+            <Text style={[styles.updated, { color: t.muted }]}>{updated}</Text>
+          </Pressable>
+        </View>
+        <Link href="/sobre" asChild>
+          <Pressable accessibilityRole="link" accessibilityLabel="Sobre o app" style={styles.about}>
+            <Svg width={22} height={22} viewBox="0 0 16 16">
+              <Path d="M8 1.8a6.2 6.2 0 1 0 0 12.4A6.2 6.2 0 0 0 8 1.8z" fill="none" stroke={t.muted} strokeWidth={1.4} />
+              <Path d={icons.info} fill="none" stroke={t.muted} strokeWidth={1.6} strokeLinecap="round" />
+            </Svg>
+          </Pressable>
+        </Link>
+      </View>
+
+      {state.error && data && (
+        <Banner
+          theme={t}
+          title="Não foi possível atualizar"
+          body={`Mostrando os dados das ${clock}.`}
+          action={{ label: 'Tentar de novo', onPress: refresh }}
+        />
+      )}
+      {state.error && !data && (
+        <Banner
+          theme={t}
+          title="Não foi possível carregar"
+          body="Confira sua conexão e tente de novo."
+          action={{ label: 'Tentar de novo', onPress: refresh }}
+        />
+      )}
+      {night && <Banner theme={t} title="Operação encerrada — volta às 4h40" icon={icons.moon} />}
+
+      <ScrollView
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={state.refreshing && !!data} onRefresh={refresh} tintColor={t.text} />
+        }>
+        {state.loading && !data && <Skeleton theme={t} />}
+        {data && (
+          <Groups
+            lines={data.lines}
+            favorites={favorites}
+            night={night}
+            theme={t}
+            onToggleFavorite={toggleFavorite}
+          />
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+type GroupsProps = {
+  lines: LineStatus[];
+  favorites: number[];
+  night: boolean;
+  theme: Theme;
+  onToggleFavorite: (code: number) => void;
+};
+
+function Groups({ lines, favorites: favoriteCodes, night, theme: t, onToggleFavorite }: GroupsProps) {
+  const { favorites, others } = groupLines(lines, favoriteCodes);
+
+  const card = (group: LineStatus[]) => (
+    <View style={[styles.card, { backgroundColor: t.surface }]}>
+      {group.map((line, i) => (
+        <LineRow
+          key={line.code}
+          line={line}
+          theme={t}
+          favorite={favoriteCodes.includes(line.code)}
+          grayBadge={night}
+          first={i === 0}
+          onToggleFavorite={() => onToggleFavorite(line.code)}
+        />
+      ))}
+    </View>
+  );
+
+  return (
+    <>
+      <View style={styles.group}>
+        <GroupHeader theme={t} title="FAVORITAS" count={favorites.length ? String(favorites.length) : ''} />
+        {favorites.length ? (
+          card(favorites)
+        ) : (
+          <View style={[styles.hint, { borderColor: t.dash }]}>
+            <Svg width={20} height={20} viewBox="0 0 24 24">
+              <Path d={star} fill="none" stroke={t.muted} strokeWidth={1.8} strokeLinejoin="round" />
+            </Svg>
+            <Text style={[styles.hintText, { color: t.muted }]}>
+              Toque na estrela de uma linha para ela aparecer aqui. Você recebe um aviso quando o status dela mudar.
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.group}>
+        <GroupHeader theme={t} title={favorites.length ? 'OUTRAS LINHAS' : 'TODAS AS LINHAS'} count={String(others.length)} />
+        {card(others)}
+      </View>
+    </>
+  );
+}
+
+function GroupHeader({ theme: t, title, count }: { theme: Theme; title: string; count: string }) {
+  return (
+    <View style={styles.groupHeader}>
+      <Text style={[styles.groupTitle, { color: t.muted }]}>{title}</Text>
+      <Text style={[styles.groupTitle, { color: t.muted }]}>{count}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 14, paddingBottom: 12, paddingLeft: 20, paddingRight: 8 },
+  headerTexts: { flex: 1, gap: 4 },
+  title: { fontFamily: fonts.bold, fontSize: 24, lineHeight: 29, letterSpacing: -0.24 },
+  updated: { fontFamily: fonts.regular, fontSize: 13 },
+  about: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingBottom: 28 },
+  group: { paddingBottom: 12 },
+  groupHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 8, paddingHorizontal: 20 },
+  groupTitle: { fontFamily: fonts.monoSemibold, fontSize: 11, letterSpacing: 0.88 },
+  card: { marginHorizontal: 12, borderRadius: 16, overflow: 'hidden' },
+  hint: {
+    marginHorizontal: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  hintText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
+});

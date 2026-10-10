@@ -4,7 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import type { LineStatus } from '@/api/status';
 import { SHOW_OPERATOR_LOGO } from '@/config';
-import { logoTint, operatorLogos } from '@/operators';
+import { logoFor } from '@/operators';
 import { badgeInk, lineInk, needsOutline } from '@/theme/contrast';
 import { fonts, star, stateVisual, type Theme } from '@/theme/tokens';
 
@@ -74,13 +74,12 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
 }
 
 function OperatorBadge({ line, theme: t }: { line: LineStatus; theme: Theme }) {
-  const logo = operatorLogos[line.operator];
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const logo = logoFor(line.operator, useColorScheme() === 'dark' ? 'dark' : 'light');
   const label = `Operadora ${line.operatorName || line.operator}`;
   if (logo) {
     return (
       <View accessibilityLabel={label} style={styles.logoBox}>
-        <Image source={logo} contentFit="contain" tintColor={logoTint(line.operator, scheme)} style={styles.logo} />
+        <Image source={logo.source} contentFit="contain" tintColor={logo.tint} style={styles.logo} />
       </View>
     );
   }

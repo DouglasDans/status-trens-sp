@@ -1,10 +1,10 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { LineStatus } from '@/api/status';
 import { SHOW_OPERATOR_LOGO } from '@/config';
-import { operatorLogos } from '@/operators';
+import { logoTint, operatorLogos } from '@/operators';
 import { badgeInk, needsOutline } from '@/theme/contrast';
 import { fonts, star, stateVisual, type Theme } from '@/theme/tokens';
 
@@ -74,11 +74,12 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
 
 function OperatorBadge({ line, theme: t }: { line: LineStatus; theme: Theme }) {
   const logo = operatorLogos[line.operator];
+  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const label = `Operadora ${line.operatorName || line.operator}`;
   if (logo) {
     return (
       <View accessibilityLabel={label} style={styles.logoBox}>
-        <Image source={logo} contentFit="contain" style={styles.logo} />
+        <Image source={logo} contentFit="contain" tintColor={logoTint(line.operator, scheme)} style={styles.logo} />
       </View>
     );
   }

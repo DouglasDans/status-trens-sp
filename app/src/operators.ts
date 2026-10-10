@@ -11,3 +11,11 @@ export const operatorLogos: Record<string, number> = {
   motiva,
   viamobilidade,
 };
+
+// Logos that keep their own colors in dark mode; every other logo is tinted
+// fully white so it stays legible on the dark surface.
+const keepColorsInDark = new Set(['metro']);
+
+export function logoTint(operator: string, scheme: 'light' | 'dark'): string | null {
+  return scheme === 'dark' && !keepColorsInDark.has(operator) ? '#FFFFFF' : null;
+}

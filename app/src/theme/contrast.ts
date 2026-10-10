@@ -21,11 +21,6 @@ export function badgeInk(background: string) {
   return contrastRatio(background, INK_LIGHT) >= contrastRatio(background, INK_DARK) ? INK_LIGHT : INK_DARK;
 }
 
-/** A badge that blends into the surface gets an outline (e.g. Safira on dark). */
-export function needsOutline(badge: string, surface: string) {
-  return contrastRatio(badge, surface) < 3;
-}
-
 /** Line number color: the official one from the backend, or by contrast for lines without it. */
 export function lineInk(background: string, officialTextColor: string) {
   return officialTextColor || badgeInk(background);

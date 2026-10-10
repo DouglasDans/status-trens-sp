@@ -91,7 +91,7 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
           action={{ label: 'Tentar de novo', onPress: refresh }}
         />
       )}
-      {night && <Banner theme={t} title="Operação encerrada — volta às 4h40" icon={icons.moon} />}
+      {night && <Banner theme={t} title="Todas as linhas estão com operação encerrada" icon={icons.moon} />}
 
       <ScrollView
         ref={scrollRef}

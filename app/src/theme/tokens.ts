@@ -12,7 +12,6 @@ const light = {
   dash: '#CFCEC8',
   skel: '#E9E8E3',
   banner: '#E9E9E4',
-  outline: 'rgba(0,0,0,.28)',
   grayBadge: '#8E8E8A',
   tones: {
     green: { fill: '#1F8A47', glyph: '#FFFFFF', label: '#1A7A3E' },
@@ -33,7 +32,6 @@ const dark: Theme = {
   dash: '#45464A',
   skel: '#27282B',
   banner: '#26272A',
-  outline: 'rgba(255,255,255,.45)',
   grayBadge: '#4D4E52',
   tones: {
     green: { fill: '#4CC27A', glyph: '#0F1A13', label: '#5ACB85' },

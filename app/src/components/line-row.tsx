@@ -5,7 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import type { LineStatus } from '@/api/status';
 import { SHOW_OPERATOR_LOGO } from '@/config';
 import { logoFor } from '@/operators';
-import { badgeInk, lineInk, needsOutline } from '@/theme/contrast';
+import { badgeInk, lineInk } from '@/theme/contrast';
 import { fonts, star, stateVisual, type Theme } from '@/theme/tokens';
 
 import { StatusDot } from './status-dot';
@@ -29,12 +29,7 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
 
   return (
     <View style={[styles.row, !first && { borderTopWidth: 1, borderTopColor: t.border }]}>
-      <View
-        style={[
-          styles.badge,
-          { backgroundColor: badge },
-          needsOutline(badge, t.surface) && { borderWidth: 1.5, borderColor: t.outline },
-        ]}>
+      <View style={[styles.badge, { backgroundColor: badge }]}>
         <Text style={{ color: ink, fontFamily: fonts.bold, fontSize: num.length > 1 ? 15 : 17 }}>
           {num}
         </Text>

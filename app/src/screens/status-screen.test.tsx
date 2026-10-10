@@ -117,6 +117,7 @@ describe('StatusScreen', () => {
     const night = { ...day, lines: day.lines.map((l) => ({ ...l, status: 'encerrada' as const, label: 'Operação Encerrada' })) };
     await render(<StatusScreen load={async () => night} />);
 
-    expect(await screen.findByText('Operação encerrada — volta às 4h40')).toBeOnTheScreen();
+    expect(await screen.findByText('Todas as linhas estão com operação encerrada')).toBeOnTheScreen();
+    expect(screen.queryByText(/4h40/)).toBeNull();
   });
 });

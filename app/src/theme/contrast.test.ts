@@ -1,4 +1,4 @@
-import { badgeInk, contrastRatio, lineInk, needsOutline } from './contrast';
+import { badgeInk, contrastRatio, lineInk } from './contrast';
 
 describe('contrastRatio', () => {
   it('is 21 between black and white', () => {
@@ -18,17 +18,6 @@ describe('badgeInk', () => {
 
   it('uses dark text on light line colors', () => {
     expect(badgeInk('#efba00')).toBe('#151515'); // Linha 4 Amarela
-  });
-});
-
-describe('needsOutline', () => {
-  it('outlines a badge that blends into the surface', () => {
-    expect(needsOutline('#848d90', '#1C1D1F')).toBe(false);
-    expect(needsOutline('#1f2086', '#1C1D1F')).toBe(true); // Safira on dark surface
-  });
-
-  it('does not outline a badge with enough contrast', () => {
-    expect(needsOutline('#00378c', '#FFFFFF')).toBe(false);
   });
 });
 

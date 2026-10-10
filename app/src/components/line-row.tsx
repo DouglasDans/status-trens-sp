@@ -76,9 +76,8 @@ function OperatorBadge({ line, theme: t }: { line: LineStatus; theme: Theme }) {
   const logo = operatorLogos[line.operator];
   const label = `Operadora ${line.operatorName || line.operator}`;
   if (logo) {
-    // Logos keep their brand colors, so they sit on a white plate in both themes.
     return (
-      <View accessibilityLabel={label} style={styles.logoPlate}>
+      <View accessibilityLabel={label} style={styles.logoBox}>
         <Image source={logo} contentFit="contain" style={styles.logo} />
       </View>
     );
@@ -98,7 +97,7 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, lineHeight: 20 },
   operator: { height: 20, paddingHorizontal: 6, borderWidth: 1, borderStyle: 'dashed', borderRadius: 5, justifyContent: 'center' },
   operatorText: { fontFamily: fonts.mono, fontSize: 10 },
-  logoPlate: { height: 20, paddingHorizontal: 6, borderRadius: 5, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  logoBox: { height: 20, justifyContent: 'center' },
   logo: { width: 56, height: 12 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontFamily: fonts.medium, fontSize: 14 },

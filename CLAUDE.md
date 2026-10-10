@@ -88,8 +88,8 @@ Create packages only when the first test needs them.
 - Status is never shown by color alone: every state has color + icon + label (`stateVisual`).
 - The row shows the source `label` (e.g. "Atividade Programada") with the canonical state's color and icon.
 - Logic that can be pure goes in `src/domain` and is unit tested; screens get dependencies as props.
-- Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a transparent background). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
-- Firebase: `@react-native-firebase/*` v26 (modular API only). Expo Go no longer works — use the EAS dev build (`eas.json` profile `development`).
+- Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a transparent background; in dark mode `logoTint` turns them fully white, except operators listed in `keepColorsInDark`). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
+- Firebase: `@react-native-firebase/*` v26 (modular API only). Expo Go keeps working until app code imports Firebase (`npx expo start --go`); after that, use the EAS dev build (`eas.json` profile `development`). `app/google-services.json` is committed on purpose: it only identifies the Firebase project and ships inside every APK. The secret is the Firebase service account used by the backend to send pushes — that one never goes to git.
 
 ## Domain essentials
 

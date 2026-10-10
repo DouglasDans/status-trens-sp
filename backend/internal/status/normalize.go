@@ -20,7 +20,7 @@ var rules = []struct {
 	{Parcial, []string{"parcial"}},
 	{Reduzida, []string{"reduzid", "maior tempo", "maiores intervalos", "lentid", "diferenciad", "restric", "atividade programada"}},
 	{Encerrada, []string{"encerrad", "fora de operac", "fechad", "nao opera"}},
-	{Normal, []string{"normal"}},
+	{Normal, []string{"normal", "transitori", "assistid"}},
 }
 
 // Normalize maps a free-text status label from a source to a canonical State.

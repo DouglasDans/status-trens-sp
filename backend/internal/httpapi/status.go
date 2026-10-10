@@ -4,8 +4,10 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -22,14 +24,18 @@ type statusResponse struct {
 }
 
 type lineResponse struct {
-	Code        int          `json:"code"`
-	Name        string       `json:"name"`
-	ColorHex    string       `json:"colorHex"`
-	Operator    string       `json:"operator"`
-	Status      status.State `json:"status"`
-	Label       string       `json:"label"`
-	Description string       `json:"description"`
+	Code         int          `json:"code"`
+	Name         string       `json:"name"`
+	ColorHex     string       `json:"colorHex"`
+	Operator     string       `json:"operator"`     // id, empty when unknown
+	OperatorName string       `json:"operatorName"` // empty when unknown
+	Status       status.State `json:"status"`
+	Label        string       `json:"label"`
+	Description  string       `json:"description"`
 }
+
+// fallbackColor is used for a line neither the catalog nor the source colors.
+const fallbackColor = "#8e8e8a"
 
 // StatusService fetches from the source at most once per ttl, so many app
 // clients never translate into many requests to a third-party endpoint.
@@ -71,32 +77,65 @@ func (s *StatusService) current(ctx context.Context) (*statusResponse, error) {
 	return s.last, nil
 }
 
+// build lists every line the catalog knows plus any line the source reports
+// that the catalog does not, sorted by code. Catalog metadata wins; the source
+// fills in what the catalog lacks.
 func (s *StatusService) build(snap source.Snapshot) *statusResponse {
 	readings := make(map[int]source.Reading, len(snap.Readings))
+	codes := make(map[int]bool, len(catalog.Lines)+len(snap.Readings))
 	for _, r := range snap.Readings {
 		if !r.Recognized {
 			s.logger.Warn("unrecognized status label", "source", snap.Source, "line", r.Code, "label", r.Label)
 		}
 		readings[r.Code] = r
+		codes[r.Code] = true
+	}
+	for _, l := range catalog.Lines {
+		codes[l.Code] = true
 	}
 
-	lines := make([]lineResponse, 0, len(catalog.Lines))
-	for _, l := range catalog.Lines {
-		r, found := readings[l.Code]
-		if !found {
-			r = source.Reading{State: status.Desconhecido}
-		}
-		lines = append(lines, lineResponse{
-			Code:        l.Code,
-			Name:        l.Name,
-			ColorHex:    l.ColorHex,
-			Operator:    l.Operator,
-			Status:      r.State,
-			Label:       r.Label,
-			Description: r.Description,
-		})
+	sorted := make([]int, 0, len(codes))
+	for code := range codes {
+		sorted = append(sorted, code)
+	}
+	slices.Sort(sorted)
+
+	lines := make([]lineResponse, 0, len(sorted))
+	for _, code := range sorted {
+		lines = append(lines, s.line(code, readings))
 	}
 	return &statusResponse{UpdatedAt: s.now().UTC(), Source: snap.Source, Lines: lines}
+}
+
+func (s *StatusService) line(code int, readings map[int]source.Reading) lineResponse {
+	r, reported := readings[code]
+	if !reported {
+		r = source.Reading{State: status.Desconhecido}
+	}
+	entry, known := catalog.Lookup(code)
+	if !known {
+		s.logger.Info("line missing from catalog", "line", code, "name", r.Name)
+	}
+
+	return lineResponse{
+		Code:         code,
+		Name:         firstNonEmpty(entry.Name, r.Name, fmt.Sprintf("Linha %d", code)),
+		ColorHex:     firstNonEmpty(entry.ColorHex, r.ColorHex, fallbackColor),
+		Operator:     entry.Operator,
+		OperatorName: catalog.Operators[entry.Operator],
+		Status:       r.State,
+		Label:        r.Label,
+		Description:  r.Description,
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // NewHandler routes the API.

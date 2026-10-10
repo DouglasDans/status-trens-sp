@@ -5,24 +5,19 @@ import (
 	"testing"
 )
 
-func TestCatalogHasTheFifteenLines(t *testing.T) {
-	want := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 17}
-	if len(Lines) != len(want) {
-		t.Fatalf("got %d lines, want %d", len(Lines), len(want))
-	}
-	for i, code := range want {
-		if Lines[i].Code != code {
-			t.Errorf("Lines[%d].Code = %d, want %d (catalog must be ordered by code)", i, Lines[i].Code, code)
+// These tests check that the catalog data is consistent, not which lines or
+// operators exist: both change over time and are edited as data.
+
+func TestLinesAreSortedAndUnique(t *testing.T) {
+	for i := 1; i < len(Lines); i++ {
+		if Lines[i].Code <= Lines[i-1].Code {
+			t.Errorf("Lines[%d].Code = %d after %d: must be sorted and unique", i, Lines[i].Code, Lines[i-1].Code)
 		}
 	}
 }
 
-func TestCatalogEntriesAreComplete(t *testing.T) {
+func TestLineEntriesAreValid(t *testing.T) {
 	hex := regexp.MustCompile(`^#[0-9a-f]{6}$`)
-	operators := map[string]bool{
-		"metro": true, "viaquatro": true, "viamobilidade": true,
-		"linhauni": true, "tictrens": true, "cptm": true, "trivia": true,
-	}
 	for _, l := range Lines {
 		if l.Name == "" {
 			t.Errorf("line %d has no name", l.Code)
@@ -30,8 +25,25 @@ func TestCatalogEntriesAreComplete(t *testing.T) {
 		if !hex.MatchString(l.ColorHex) {
 			t.Errorf("line %d color %q is not #rrggbb", l.Code, l.ColorHex)
 		}
-		if !operators[l.Operator] {
-			t.Errorf("line %d operator %q is not a known operator id", l.Code, l.Operator)
+		if _, ok := Operators[l.Operator]; !ok {
+			t.Errorf("line %d operator %q is missing from Operators", l.Code, l.Operator)
 		}
+	}
+}
+
+func TestOperatorsHaveNames(t *testing.T) {
+	for id, name := range Operators {
+		if id == "" || name == "" {
+			t.Errorf("operator %q has an empty id or name", id)
+		}
+	}
+}
+
+func TestLookup(t *testing.T) {
+	if l, ok := Lookup(9); !ok || l.Name != "Esmeralda" {
+		t.Errorf("Lookup(9) = %+v, %v", l, ok)
+	}
+	if _, ok := Lookup(999); ok {
+		t.Error("Lookup(999) found a line that does not exist")
 	}
 }

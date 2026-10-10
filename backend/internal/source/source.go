@@ -9,16 +9,20 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/DouglasDans/status-trens-sp/backend/internal/status"
 )
 
-// Reading is the status of one line as reported by a source. Line metadata
-// (name, color, operator) is not taken from sources: they are inconsistent,
-// so it comes from the line catalog instead.
+// Reading is the status of one line as reported by a source. Name and
+// ColorHex come from the source so a line the catalog does not know yet still
+// shows up; the catalog overrides them when it has an entry.
 type Reading struct {
 	Code        int
+	Name        string
+	ColorHex    string // empty when the source sends no color
 	State       status.State
 	Recognized  bool   // false when the source label matched no normalization rule
 	Label       string // raw label from the source, kept for logging and display
@@ -60,6 +64,24 @@ func cleanDescription(label, description string) string {
 		return ""
 	}
 	return description
+}
+
+var linePrefix = regexp.MustCompile(`(?i)^linha\s*\d+\s*-?\s*`)
+
+// lineName cleans source line names: "Linha 4-Amarela" and "LARANJA" become
+// "Amarela" and "Laranja".
+func lineName(raw string) string {
+	name := linePrefix.ReplaceAllString(strings.TrimSpace(raw), "")
+	if name != strings.ToUpper(name) {
+		return name
+	}
+	words := strings.Fields(strings.ToLower(name))
+	for i, w := range words {
+		r := []rune(w)
+		r[0] = unicode.ToUpper(r[0])
+		words[i] = string(r)
+	}
+	return strings.Join(words, " ")
 }
 
 func getJSON(ctx context.Context, client *http.Client, url string, v any) error {

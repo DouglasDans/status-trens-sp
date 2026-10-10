@@ -24,6 +24,9 @@ Backend (run from `backend/`):
 go test ./...        # all tests (use -race when touching httpapi)
 go vet ./...         # static checks
 go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
+
+docker build -t status-trens-sp-api .                  # distroless image (~17 MB), non-root
+docker run -d --name status-trens-sp-api -p 8080:8080 status-trens-sp-api
 ```
 
 App (run from `app/`, Yarn 4 with `nodeLinker: node-modules` — Metro does not support PnP):
@@ -85,11 +88,14 @@ Create packages only when the first test needs them.
 - Status is never shown by color alone: every state has color + icon + label (`stateVisual`).
 - The row shows the source `label` (e.g. "Atividade Programada") with the canonical state's color and icon.
 - Logic that can be pure goes in `src/domain` and is unit tested; screens get dependencies as props.
-- Operator logos are behind `SHOW_OPERATOR_LOGO` in `src/config.ts` (trademark risk); a dashed text chip is the placeholder until real logos exist.
+- Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a white plate). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
+- Firebase: `@react-native-firebase/*` v26 (modular API only). Expo Go no longer works — use the EAS dev build (`eas.json` profile `development`).
 
 ## Domain essentials
 
-Canonical states: `normal`, `reduzida`, `parcial`, `paralisada`, `encerrada`, `desconhecido`. Unmapped source labels map to `desconhecido` and must be logged.
+Canonical states: `normal`, `reduzida`, `parcial`, `paralisada`, `encerrada`, `desconhecido`. Unmapped source labels map to `desconhecido` and are logged — that log is how new labels get discovered and added to the rules (e.g. "Operação Transitória"/"Assistida" → `normal`: normal operation on limited hours).
+
+**Lines, operators and labels are data, not code.** Concessions change and new lines and labels appear over time; never encode that history in code or comments. The system must accept them without refactoring: a new line from a source shows up by itself, the catalog only fixes its presentation, a new operator is one entry in `catalog.Operators`.
 
 Data sources, in priority order:
 1. **Próximo Trem** — `https://apim-proximotrem-prd-brazilsouth-001.azure-api.net/api/v1/lines`, no auth, 15 lines, no timestamp in the response.
@@ -98,7 +104,7 @@ Data sources, in priority order:
 
 The app never calls a source directly; it only talks to our `GET /status`.
 
-Sources report only per-line status (`source.Reading`). Line names, colors and operators come from `catalog` because sources are inconsistent ("LARANJA", "Linha 4-Amarela") and CPTM sends no color. Lines missing from a source (CPTM lacks 13, 15, 17) are returned as `desconhecido`.
+Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Linha 4-Amarela" → "Amarela") and color when they have one (CPTM sends none). `GET /status` returns the union of catalog lines and source lines, sorted by code: catalog metadata wins, the source fills the gaps, and a line nobody colors gets a neutral gray. A catalog line missing from the source is `desconhecido`.
 
 ## GET /status contract
 
@@ -108,10 +114,11 @@ Sources report only per-line status (`source.Reading`). Line names, colors and o
   "source": "proximotrem",
   "stale": false,
   "lines": [
-    { "code": 9, "name": "Esmeralda", "colorHex": "#219896", "operator": "viamobilidade",
+    { "code": 9, "name": "Esmeralda", "colorHex": "#219896",
+      "operator": "viamobilidade", "operatorName": "ViaMobilidade",
       "status": "reduzida", "label": "Atividade Programada", "description": "..." }
   ]
 }
 ```
 
-`stale: true` means every source failed and this is the last known data. `503` with `{"error": ...}` only when there is no data at all. `changedAt` arrives in Phase 2 with the store.
+`operator`/`operatorName` are empty for a line without catalog entry. `stale: true` means every source failed and this is the last known data. `503` with `{"error": ...}` only when there is no data at all. `changedAt` arrives in Phase 2 with the store.

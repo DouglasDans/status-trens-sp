@@ -72,6 +72,49 @@ func TestProximoTremParsesRealResponse(t *testing.T) {
 	}
 }
 
+func TestProximoTremReportsLineNameAndColor(t *testing.T) {
+	srv := serve(t, "application/json", http.StatusOK, fixture(t, "proximotrem.json"))
+
+	snap, err := NewProximoTrem(srv.URL, srv.Client()).Fetch(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := byCode(snap.Readings)
+	tests := []struct {
+		code      int
+		name, hex string
+	}{
+		{4, "Amarela", "#efba00"}, // "Linha 4-Amarela"
+		{5, "Lilás", "#9271b1"},   // "Linha 5-Lilás"
+		{6, "Laranja", "#f27c00"}, // "LARANJA"
+		{10, "Turquesa", "#1c8aab"},
+		{15, "Prata", "#848d90"}, // "Linha 15 - Prata"
+	}
+	for _, tt := range tests {
+		if got := lines[tt.code]; got.Name != tt.name || got.ColorHex != tt.hex {
+			t.Errorf("line %d name/color = %q/%q, want %q/%q", tt.code, got.Name, got.ColorHex, tt.name, tt.hex)
+		}
+	}
+}
+
+func TestLineName(t *testing.T) {
+	tests := []struct{ raw, want string }{
+		{"Linha 4-Amarela", "Amarela"},
+		{"Linha 15 - Prata", "Prata"},
+		{"LARANJA", "Laranja"},
+		{"RUBI", "Rubi"},
+		{"Turquesa", "Turquesa"},
+		{"LINHA 18 - BRONZE", "Bronze"},
+		{"  Jade ", "Jade"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := lineName(tt.raw); got != tt.want {
+			t.Errorf("lineName(%q) = %q, want %q", tt.raw, got, tt.want)
+		}
+	}
+}
+
 func TestProximoTremStatusCodes(t *testing.T) {
 	tests := []struct {
 		name           string

@@ -77,10 +77,46 @@ func TestStatusMergesCatalogWithReadings(t *testing.T) {
 			line9 = l
 		}
 	}
-	want := lineResponse{Code: 9, Name: "Esmeralda", ColorHex: "#219896", Operator: "viamobilidade",
+	want := lineResponse{Code: 9, Name: "Esmeralda", ColorHex: "#219896", Operator: "viamobilidade", OperatorName: "ViaMobilidade",
 		Status: status.Reduzida, Label: "Atividade Programada", Description: "Maiores intervalos."}
 	if line9 != want {
 		t.Errorf("line 9 = %+v, want %+v", line9, want)
+	}
+}
+
+func TestStatusIncludesLinesTheCatalogDoesNotKnow(t *testing.T) {
+	src := &fakeSource{snap: source.Snapshot{Source: "proximotrem", Readings: []source.Reading{
+		{Code: 18, Name: "Bronze", ColorHex: "#a0522d", State: status.Normal, Recognized: true, Label: "Operação Normal"},
+		{Code: 19, Name: "", ColorHex: "", State: status.Normal, Recognized: true, Label: "Operação Normal"},
+	}}}
+	_, body := get(t, newTestHandler(src, &fakeClock{t0}, &bytes.Buffer{}))
+
+	if len(body.Lines) != len(catalog.Lines)+2 {
+		t.Fatalf("got %d lines, want catalog + 2 new ones", len(body.Lines))
+	}
+	last := body.Lines[len(body.Lines)-2:]
+	want := []lineResponse{
+		{Code: 18, Name: "Bronze", ColorHex: "#a0522d", Status: status.Normal, Label: "Operação Normal"},
+		{Code: 19, Name: "Linha 19", ColorHex: fallbackColor, Status: status.Normal, Label: "Operação Normal"},
+	}
+	for i := range want {
+		if last[i] != want[i] {
+			t.Errorf("new line = %+v, want %+v (sorted by code, source data, no operator)", last[i], want[i])
+		}
+	}
+}
+
+func TestStatusPrefersCatalogMetadataOverTheSource(t *testing.T) {
+	src := &fakeSource{snap: source.Snapshot{Source: "proximotrem", Readings: []source.Reading{
+		{Code: 6, Name: "LARANJA raw", ColorHex: "#000000", State: status.Normal, Recognized: true},
+	}}}
+	_, body := get(t, newTestHandler(src, &fakeClock{t0}, &bytes.Buffer{}))
+
+	entry, _ := catalog.Lookup(6)
+	for _, l := range body.Lines {
+		if l.Code == 6 && (l.Name != entry.Name || l.ColorHex != entry.ColorHex) {
+			t.Errorf("line 6 = %+v, want catalog name %q and color %q", l, entry.Name, entry.ColorHex)
+		}
 	}
 }
 

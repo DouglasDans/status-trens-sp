@@ -25,6 +25,7 @@ func NewCPTM(url string, client *http.Client) *CPTM {
 
 type cptmLine struct {
 	LinhaId   int
+	Nome      string
 	Status    string
 	Descricao string
 }
@@ -40,6 +41,7 @@ func (c *CPTM) Fetch(ctx context.Context) (Snapshot, error) {
 		state, ok := status.Normalize(l.Status)
 		readings = append(readings, Reading{
 			Code:        l.LinhaId,
+			Name:        lineName(l.Nome),
 			State:       state,
 			Recognized:  ok,
 			Label:       l.Status,

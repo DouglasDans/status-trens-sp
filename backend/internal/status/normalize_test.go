@@ -40,6 +40,10 @@ func TestNormalize(t *testing.T) {
 		{"fechada", "Linha fechada", Encerrada, true},
 		{"nao opera", "Não opera", Encerrada, true},
 
+		// Normal operation on limited hours (new lines): green, the label tells the rest.
+		{"operacao transitoria", "Operação Transitória", Normal, true},
+		{"operacao assistida", "Operação Assistida", Normal, true},
+
 		// Keywords match at the start of a word, not anywhere inside it.
 		{"anormal is not normal", "Anormal", Desconhecido, false},
 		{"subnormal is not normal", "Subnormal", Desconhecido, false},

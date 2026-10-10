@@ -23,7 +23,8 @@ func TestCPTMParsesRealResponse(t *testing.T) {
 		t.Fatalf("got %d readings, want 11", len(snap.Readings))
 	}
 	got := byCode(snap.Readings)[7]
-	want := Reading{Code: 7, State: status.Normal, Recognized: true, Label: "Operação Normal", Description: "Linha opera normalmente em toda sua extensão."}
+	// CPTM sends no color (Cor is null).
+	want := Reading{Code: 7, Name: "Rubi", State: status.Normal, Recognized: true, Label: "Operação Normal", Description: "Linha opera normalmente em toda sua extensão."}
 	if got != want {
 		t.Errorf("line 7 = %+v, want %+v", got, want)
 	}

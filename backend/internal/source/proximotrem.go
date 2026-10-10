@@ -34,6 +34,8 @@ type proximoTremResponse struct {
 	Message string
 	Data    []struct {
 		Code        int
+		Line        string
+		ColorHex    string
 		StatusCode  string
 		StatusLabel string
 		Description *string
@@ -61,6 +63,8 @@ func (p *ProximoTrem) Fetch(ctx context.Context) (Snapshot, error) {
 		}
 		readings = append(readings, Reading{
 			Code:        l.Code,
+			Name:        lineName(l.Line),
+			ColorHex:    l.ColorHex,
 			State:       state,
 			Recognized:  ok,
 			Label:       l.StatusLabel,

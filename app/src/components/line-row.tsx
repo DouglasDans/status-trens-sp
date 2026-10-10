@@ -41,10 +41,7 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
       </View>
 
       <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={[styles.name, { color: t.text }]}>{line.name}</Text>
-          {SHOW_OPERATOR_LOGO && line.operator !== '' && <OperatorBadge line={line} theme={t} />}
-        </View>
+        <Text style={[styles.name, { color: t.text }]}>{line.name}</Text>
         <View style={styles.statusRow}>
           <StatusDot fill={tone.fill} glyph={tone.glyph} icon={visual.icon} />
           <Text style={[styles.label, { color: tone.label }]}>{line.label || visual.label}</Text>
@@ -53,6 +50,9 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
           <Text style={[styles.description, { color: t.muted }]}>{line.description}</Text>
         )}
       </View>
+
+      {/* Operator and star are centered on the whole row, side by side. */}
+      {SHOW_OPERATOR_LOGO && line.operator !== '' && <OperatorBadge line={line} theme={t} />}
 
       <Pressable
         onPress={onToggleFavorite}
@@ -94,14 +94,13 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 12, paddingLeft: 16, paddingRight: 4 },
   badge: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   body: { flex: 1, minWidth: 0, gap: 4, paddingTop: 2 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, lineHeight: 20 },
-  operator: { height: 20, paddingHorizontal: 6, borderWidth: 1, borderStyle: 'dashed', borderRadius: 5, justifyContent: 'center' },
+  name: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 20 },
+  operator: { alignSelf: 'center', height: 20, paddingHorizontal: 6, borderWidth: 1, borderStyle: 'dashed', borderRadius: 5, justifyContent: 'center' },
   operatorText: { fontFamily: fonts.mono, fontSize: 10 },
-  logoBox: { height: 20, justifyContent: 'center' },
+  logoBox: { alignSelf: 'center', height: 20, justifyContent: 'center' },
   logo: { width: 56, height: 12 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontFamily: fonts.medium, fontSize: 14 },
   description: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
-  star: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  star: { alignSelf: 'center', width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,4 +1,4 @@
-import { badgeInk, contrastRatio, needsOutline } from './contrast';
+import { badgeInk, contrastRatio, lineInk, needsOutline } from './contrast';
 
 describe('contrastRatio', () => {
   it('is 21 between black and white', () => {
@@ -29,5 +29,15 @@ describe('needsOutline', () => {
 
   it('does not outline a badge with enough contrast', () => {
     expect(needsOutline('#00378c', '#FFFFFF')).toBe(false);
+  });
+});
+
+describe('lineInk', () => {
+  it('uses the official text color when the backend sends one', () => {
+    expect(lineInk('#00a88e', '#ffffff')).toBe('#ffffff'); // Esmeralda: white by the signs, not by contrast
+  });
+
+  it('falls back to contrast when the line has no official text color', () => {
+    expect(lineInk('#efba00', '')).toBe('#151515');
   });
 });

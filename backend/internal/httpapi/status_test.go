@@ -77,7 +77,8 @@ func TestStatusMergesCatalogWithReadings(t *testing.T) {
 			line9 = l
 		}
 	}
-	want := lineResponse{Code: 9, Name: "Esmeralda", ColorHex: "#219896", Operator: "viamobilidade", OperatorName: "ViaMobilidade",
+	entry, _ := catalog.Lookup(9)
+	want := lineResponse{Code: 9, Name: "Esmeralda", ColorHex: entry.ColorHex, TextColorHex: entry.TextColorHex, Operator: "viamobilidade", OperatorName: "ViaMobilidade",
 		Status: status.Reduzida, Label: "Atividade Programada", Description: "Maiores intervalos."}
 	if line9 != want {
 		t.Errorf("line 9 = %+v, want %+v", line9, want)

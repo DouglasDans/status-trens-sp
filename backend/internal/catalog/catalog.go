@@ -22,29 +22,35 @@ var Operators = map[string]string{
 
 // Line is the display metadata of one line.
 type Line struct {
-	Code     int
-	Name     string
-	ColorHex string
-	Operator string // key of Operators
+	Code         int
+	Name         string
+	ColorHex     string // line color as on the current network map
+	TextColorHex string // color of the line number on top of ColorHex, as on station signs
+	Operator     string // key of Operators
 }
+
+const (
+	white = "#ffffff"
+	black = "#231f20"
+)
 
 // Lines is sorted by code.
 var Lines = []Line{
-	{1, "Azul", "#00378c", "metro"},
-	{2, "Verde", "#186d55", "metro"},
-	{3, "Vermelha", "#f51200", "metro"},
-	{4, "Amarela", "#efba00", "motiva"},
-	{5, "Lilás", "#9271b1", "motiva"},
-	{6, "Laranja", "#f27c00", "linhauni"},
-	{7, "Rubi", "#c80857", "tictrens"},
-	{8, "Diamante", "#949488", "viamobilidade"},
-	{9, "Esmeralda", "#219896", "viamobilidade"},
-	{10, "Turquesa", "#1c8aab", "cptm"},
-	{11, "Coral", "#f46c55", "trivia"},
-	{12, "Safira", "#1f2086", "trivia"},
-	{13, "Jade", "#29b352", "trivia"},
-	{15, "Prata", "#848d90", "metro"},
-	{17, "Ouro", "#d58405", "metro"},
+	{1, "Azul", "#0053a0", white, "metro"},
+	{2, "Verde", "#008062", white, "metro"},
+	{3, "Vermelha", "#ef4135", white, "metro"},
+	{4, "Amarela", "#ffd401", black, "motiva"},
+	{5, "Lilás", "#794e9f", white, "motiva"},
+	{6, "Laranja", "#f47322", black, "linhauni"},
+	{7, "Rubi", "#a01866", white, "tictrens"},
+	{8, "Diamante", "#9f9f94", white, "viamobilidade"},
+	{9, "Esmeralda", "#00a88e", white, "viamobilidade"},
+	{10, "Turquesa", "#007c8f", white, "cptm"},
+	{11, "Coral", "#f04e22", white, "cptm"},
+	{12, "Safira", "#053f89", white, "cptm"},
+	{13, "Jade", "#00ac5b", white, "trivia"},
+	{15, "Prata", "#868e91", black, "metro"},
+	{17, "Ouro", "#928058", black, "metro"},
 }
 
 // Lookup returns the catalog entry for a line code.

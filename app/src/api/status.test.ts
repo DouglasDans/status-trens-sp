@@ -9,6 +9,7 @@ const body: StatusResponse = {
       code: 9,
       name: 'Esmeralda',
       colorHex: '#219896',
+      textColorHex: '#ffffff',
       operator: 'viamobilidade',
       operatorName: 'ViaMobilidade',
       status: 'reduzida',

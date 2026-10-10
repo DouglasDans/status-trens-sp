@@ -114,11 +114,11 @@ Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Lin
   "source": "proximotrem",
   "stale": false,
   "lines": [
-    { "code": 9, "name": "Esmeralda", "colorHex": "#219896",
+    { "code": 9, "name": "Esmeralda", "colorHex": "#00a88e", "textColorHex": "#ffffff",
       "operator": "viamobilidade", "operatorName": "ViaMobilidade",
       "status": "reduzida", "label": "Atividade Programada", "description": "..." }
   ]
 }
 ```
 
-`operator`/`operatorName` are empty for a line without catalog entry. `stale: true` means every source failed and this is the last known data. `503` with `{"error": ...}` only when there is no data at all. `changedAt` arrives in Phase 2 with the store.
+`operator`/`operatorName`/`textColorHex` are empty for a line without catalog entry (the app then picks the number color by contrast). Line colors and number colors in the catalog follow the current network map and station signs, not contrast math. `stale: true` means every source failed and this is the last known data. `503` with `{"error": ...}` only when there is no data at all. `changedAt` arrives in Phase 2 with the store.

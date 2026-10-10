@@ -9,7 +9,7 @@ import { StatusScreen } from './status-screen';
 jest.mock('expo-router', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
 
 function line(code: number, name: string, status: LineStatus['status'], label = '', description = ''): LineStatus {
-  return { code, name, colorHex: '#219896', operator: 'viamobilidade', operatorName: 'ViaMobilidade', status, label, description };
+  return { code, name, colorHex: '#219896', textColorHex: '#ffffff', operator: 'viamobilidade', operatorName: 'ViaMobilidade', status, label, description };
 }
 
 const day: StatusResponse = {

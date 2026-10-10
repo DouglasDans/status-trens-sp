@@ -25,3 +25,8 @@ export function badgeInk(background: string) {
 export function needsOutline(badge: string, surface: string) {
   return contrastRatio(badge, surface) < 3;
 }
+
+/** Line number color: the official one from the backend, or by contrast for lines without it. */
+export function lineInk(background: string, officialTextColor: string) {
+  return officialTextColor || badgeInk(background);
+}

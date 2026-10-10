@@ -25,6 +25,9 @@ func TestLineEntriesAreValid(t *testing.T) {
 		if !hex.MatchString(l.ColorHex) {
 			t.Errorf("line %d color %q is not #rrggbb", l.Code, l.ColorHex)
 		}
+		if !hex.MatchString(l.TextColorHex) {
+			t.Errorf("line %d text color %q is not #rrggbb", l.Code, l.TextColorHex)
+		}
 		if _, ok := Operators[l.Operator]; !ok {
 			t.Errorf("line %d operator %q is missing from Operators", l.Code, l.Operator)
 		}

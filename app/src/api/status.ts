@@ -6,6 +6,7 @@ export type LineStatus = {
   code: number;
   name: string;
   colorHex: string;
+  textColorHex: string; // official number color; empty for lines without catalog entry
   operator: string; // id, empty when the backend has no operator for the line
   operatorName: string;
   status: State;

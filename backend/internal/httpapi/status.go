@@ -27,6 +27,7 @@ type lineResponse struct {
 	Code         int          `json:"code"`
 	Name         string       `json:"name"`
 	ColorHex     string       `json:"colorHex"`
+	TextColorHex string       `json:"textColorHex"` // empty when unknown: the app picks by contrast
 	Operator     string       `json:"operator"`     // id, empty when unknown
 	OperatorName string       `json:"operatorName"` // empty when unknown
 	Status       status.State `json:"status"`
@@ -121,6 +122,7 @@ func (s *StatusService) line(code int, readings map[int]source.Reading) lineResp
 		Code:         code,
 		Name:         firstNonEmpty(entry.Name, r.Name, fmt.Sprintf("Linha %d", code)),
 		ColorHex:     firstNonEmpty(entry.ColorHex, r.ColorHex, fallbackColor),
+		TextColorHex: entry.TextColorHex,
 		Operator:     entry.Operator,
 		OperatorName: catalog.Operators[entry.Operator],
 		Status:       r.State,

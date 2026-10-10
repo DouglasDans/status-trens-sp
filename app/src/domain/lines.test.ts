@@ -3,7 +3,7 @@ import type { LineStatus } from '@/api/status';
 import { formatClock, groupLines, isNight } from './lines';
 
 function line(code: number, status: LineStatus['status'] = 'normal'): LineStatus {
-  return { code, name: `L${code}`, colorHex: '#000000', operator: 'metro', operatorName: 'Metrô', status, label: '', description: '' };
+  return { code, name: `L${code}`, colorHex: '#000000', textColorHex: '#ffffff', operator: 'metro', operatorName: 'Metrô', status, label: '', description: '' };
 }
 
 describe('groupLines', () => {

@@ -78,49 +78,29 @@ func (s *StatusService) current(ctx context.Context) (*statusResponse, error) {
 	return s.last, nil
 }
 
-// build lists every line the catalog knows plus any line the source reports
-// that the catalog does not, sorted by code. Catalog metadata wins; the source
-// fills in what the catalog lacks.
+// build lists the lines the source reports, sorted by code. The catalog only
+// enriches them (it may hold lines prepared before they open, which stay
+// hidden until a source reports them); the source fills what it lacks.
 func (s *StatusService) build(snap source.Snapshot) *statusResponse {
-	readings := make(map[int]source.Reading, len(snap.Readings))
-	codes := make(map[int]bool, len(catalog.Lines)+len(snap.Readings))
+	lines := make([]lineResponse, 0, len(snap.Readings))
 	for _, r := range snap.Readings {
 		if !r.Recognized {
 			s.logger.Warn("unrecognized status label", "source", snap.Source, "line", r.Code, "label", r.Label)
 		}
-		readings[r.Code] = r
-		codes[r.Code] = true
+		lines = append(lines, s.line(r))
 	}
-	for _, l := range catalog.Lines {
-		codes[l.Code] = true
-	}
-
-	sorted := make([]int, 0, len(codes))
-	for code := range codes {
-		sorted = append(sorted, code)
-	}
-	slices.Sort(sorted)
-
-	lines := make([]lineResponse, 0, len(sorted))
-	for _, code := range sorted {
-		lines = append(lines, s.line(code, readings))
-	}
+	slices.SortFunc(lines, func(a, b lineResponse) int { return a.Code - b.Code })
 	return &statusResponse{UpdatedAt: s.now().UTC(), Source: snap.Source, Lines: lines}
 }
 
-func (s *StatusService) line(code int, readings map[int]source.Reading) lineResponse {
-	r, reported := readings[code]
-	if !reported {
-		r = source.Reading{State: status.Desconhecido}
-	}
-	entry, known := catalog.Lookup(code)
+func (s *StatusService) line(r source.Reading) lineResponse {
+	entry, known := catalog.Lookup(r.Code)
 	if !known {
-		s.logger.Info("line missing from catalog", "line", code, "name", r.Name)
+		s.logger.Info("line missing from catalog", "line", r.Code, "name", r.Name)
 	}
-
 	return lineResponse{
-		Code:         code,
-		Name:         firstNonEmpty(entry.Name, r.Name, fmt.Sprintf("Linha %d", code)),
+		Code:         r.Code,
+		Name:         firstNonEmpty(entry.Name, r.Name, fmt.Sprintf("Linha %d", r.Code)),
 		ColorHex:     firstNonEmpty(entry.ColorHex, r.ColorHex, fallbackColor),
 		TextColorHex: entry.TextColorHex,
 		Operator:     entry.Operator,

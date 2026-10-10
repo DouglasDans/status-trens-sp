@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -67,16 +68,10 @@ func TestStatusMergesCatalogWithReadings(t *testing.T) {
 	if body.Source != "proximotrem" || !body.UpdatedAt.Equal(t0) || body.Stale {
 		t.Errorf("header fields = %+v", body)
 	}
-	if len(body.Lines) != len(catalog.Lines) {
-		t.Fatalf("got %d lines, want %d", len(body.Lines), len(catalog.Lines))
+	if len(body.Lines) != 1 {
+		t.Fatalf("got %d lines, want only the one the source reports", len(body.Lines))
 	}
-
-	var line9 lineResponse
-	for _, l := range body.Lines {
-		if l.Code == 9 {
-			line9 = l
-		}
-	}
+	line9 := body.Lines[0]
 	entry, _ := catalog.Lookup(9)
 	want := lineResponse{Code: 9, Name: "Esmeralda", ColorHex: entry.ColorHex, TextColorHex: entry.TextColorHex, Operator: "viamobilidade", OperatorName: "ViaMobilidade",
 		Status: status.Reduzida, Label: "Atividade Programada", Description: "Maiores intervalos."}
@@ -92,10 +87,10 @@ func TestStatusIncludesLinesTheCatalogDoesNotKnow(t *testing.T) {
 	}}}
 	_, body := get(t, newTestHandler(src, &fakeClock{t0}, &bytes.Buffer{}))
 
-	if len(body.Lines) != len(catalog.Lines)+2 {
-		t.Fatalf("got %d lines, want catalog + 2 new ones", len(body.Lines))
+	if len(body.Lines) != 2 {
+		t.Fatalf("got %d lines, want the 2 the source reports", len(body.Lines))
 	}
-	last := body.Lines[len(body.Lines)-2:]
+	last := body.Lines
 	want := []lineResponse{
 		{Code: 18, Name: "Bronze", ColorHex: "#a0522d", Status: status.Normal, Label: "Operação Normal"},
 		{Code: 19, Name: "Linha 19", ColorHex: fallbackColor, Status: status.Normal, Label: "Operação Normal"},
@@ -121,14 +116,21 @@ func TestStatusPrefersCatalogMetadataOverTheSource(t *testing.T) {
 	}
 }
 
-func TestStatusMarksLinesMissingFromTheSourceAsDesconhecido(t *testing.T) {
-	src := &fakeSource{snap: source.Snapshot{Source: "cptm"}} // CPTM has no 13, 15, 17
+func TestStatusHidesCatalogLinesTheSourceDoesNotReport(t *testing.T) {
+	// The catalog may hold lines prepared before they open; users only see a
+	// line once a source reports it.
+	src := &fakeSource{snap: source.Snapshot{Source: "cptm", Readings: []source.Reading{
+		{Code: 12, Name: "Safira", State: status.Normal, Recognized: true, Label: "Operação Normal"},
+		{Code: 7, Name: "Rubi", State: status.Normal, Recognized: true, Label: "Operação Normal"},
+	}}}
 	_, body := get(t, newTestHandler(src, &fakeClock{t0}, &bytes.Buffer{}))
 
+	var codes []int
 	for _, l := range body.Lines {
-		if l.Status != status.Desconhecido || l.Label != "" {
-			t.Errorf("line %d = %+v, want desconhecido with empty label", l.Code, l)
-		}
+		codes = append(codes, l.Code)
+	}
+	if !slices.Equal(codes, []int{7, 12}) {
+		t.Errorf("lines = %v, want only the reported ones, sorted: [7 12]", codes)
 	}
 }
 

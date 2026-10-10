@@ -1,9 +1,10 @@
 // Package catalog holds the line metadata that sources do not send reliably:
 // display name, official color and operator. It is data, edited by hand.
 //
-// A line the sources report but the catalog lacks still shows up, using the
-// source's name and color and no operator. Add an entry here only to fix its
-// presentation. Adding an operator means adding it to Operators (and,
+// Users see a line only once a source reports it; this catalog just enriches
+// it. A reported line missing here still shows up with the source's name and
+// color and no operator. A line can be added here before it opens: it stays
+// hidden until a source reports it. Adding an operator means adding it to Operators (and,
 // optionally, its logo in the app).
 package catalog
 

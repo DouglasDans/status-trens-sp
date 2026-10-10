@@ -95,6 +95,8 @@ Create packages only when the first test needs them.
 
 Canonical states: `normal`, `reduzida`, `parcial`, `paralisada`, `encerrada`, `desconhecido`. Unmapped source labels map to `desconhecido` and are logged — that log is how new labels get discovered and added to the rules (e.g. "Operação Transitória"/"Assistida" → `normal`: normal operation on limited hours).
 
+**The system only relays what sources and operators say.** No schedules or operating rules in code (opening times differ per line and change; only a source says a line is closed); descriptions are always the operator's text.
+
 **Lines, operators and labels are data, not code.** Concessions change and new lines and labels appear over time; never encode that history in code or comments. The system must accept them without refactoring: a new line from a source shows up by itself, the catalog only fixes its presentation, a new operator is one entry in `catalog.Operators`.
 
 Data sources, in priority order:
@@ -104,7 +106,7 @@ Data sources, in priority order:
 
 The app never calls a source directly; it only talks to our `GET /status`.
 
-Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Linha 4-Amarela" → "Amarela") and color when they have one (CPTM sends none). `GET /status` returns the union of catalog lines and source lines, sorted by code: catalog metadata wins, the source fills the gaps, and a line nobody colors gets a neutral gray. A catalog line missing from the source is `desconhecido`.
+Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Linha 4-Amarela" → "Amarela") and color when they have one (CPTM sends none). `GET /status` returns exactly the lines the source reports, sorted by code: catalog metadata wins, the source fills the gaps, and a line nobody colors gets a neutral gray. The catalog may hold lines prepared before they open; they stay hidden until a source reports them. Known trade-off: when the fallback source lacks a line (CPTM has no 13, 15, 17), that line disappears until the primary source is back.
 
 ## GET /status contract
 

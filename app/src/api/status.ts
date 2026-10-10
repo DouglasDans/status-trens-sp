@@ -6,7 +6,8 @@ export type LineStatus = {
   code: number;
   name: string;
   colorHex: string;
-  operator: string;
+  operator: string; // id, empty when the backend has no operator for the line
+  operatorName: string;
   status: State;
   label: string;
   description: string;

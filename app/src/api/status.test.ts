@@ -10,6 +10,7 @@ const body: StatusResponse = {
       name: 'Esmeralda',
       colorHex: '#219896',
       operator: 'viamobilidade',
+      operatorName: 'ViaMobilidade',
       status: 'reduzida',
       label: 'Atividade Programada',
       description: 'Maiores intervalos.',

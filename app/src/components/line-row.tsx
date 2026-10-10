@@ -1,8 +1,10 @@
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import type { LineStatus } from '@/api/status';
-import { operatorNames, SHOW_OPERATOR_LOGO } from '@/config';
+import { SHOW_OPERATOR_LOGO } from '@/config';
+import { operatorLogos } from '@/operators';
 import { badgeInk, needsOutline } from '@/theme/contrast';
 import { fonts, star, stateVisual, type Theme } from '@/theme/tokens';
 
@@ -40,14 +42,7 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <Text style={[styles.name, { color: t.text }]}>{line.name}</Text>
-          {SHOW_OPERATOR_LOGO && (
-            // Placeholder until the operator logos are added.
-            <View style={[styles.operator, { borderColor: t.dash }]}>
-              <Text style={[styles.operatorText, { color: t.muted }]}>
-                {operatorNames[line.operator] ?? line.operator}
-              </Text>
-            </View>
-          )}
+          {SHOW_OPERATOR_LOGO && line.operator !== '' && <OperatorBadge line={line} theme={t} />}
         </View>
         <View style={styles.statusRow}>
           <StatusDot fill={tone.fill} glyph={tone.glyph} icon={visual.icon} />
@@ -77,6 +72,24 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
   );
 }
 
+function OperatorBadge({ line, theme: t }: { line: LineStatus; theme: Theme }) {
+  const logo = operatorLogos[line.operator];
+  const label = `Operadora ${line.operatorName || line.operator}`;
+  if (logo) {
+    // Logos keep their brand colors, so they sit on a white plate in both themes.
+    return (
+      <View accessibilityLabel={label} style={styles.logoPlate}>
+        <Image source={logo} contentFit="contain" style={styles.logo} />
+      </View>
+    );
+  }
+  return (
+    <View accessibilityLabel={label} style={[styles.operator, { borderColor: t.dash }]}>
+      <Text style={[styles.operatorText, { color: t.muted }]}>{line.operatorName || line.operator}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 12, paddingLeft: 16, paddingRight: 4 },
   badge: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
@@ -85,6 +98,8 @@ const styles = StyleSheet.create({
   name: { flex: 1, fontFamily: fonts.semibold, fontSize: 16, lineHeight: 20 },
   operator: { height: 20, paddingHorizontal: 6, borderWidth: 1, borderStyle: 'dashed', borderRadius: 5, justifyContent: 'center' },
   operatorText: { fontFamily: fonts.mono, fontSize: 10 },
+  logoPlate: { height: 20, paddingHorizontal: 6, borderRadius: 5, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  logo: { width: 56, height: 12 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontFamily: fonts.medium, fontSize: 14 },
   description: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },

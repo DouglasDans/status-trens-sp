@@ -9,7 +9,7 @@ import { StatusScreen } from './status-screen';
 jest.mock('expo-router', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
 
 function line(code: number, name: string, status: LineStatus['status'], label = '', description = ''): LineStatus {
-  return { code, name, colorHex: '#219896', operator: 'viamobilidade', status, label, description };
+  return { code, name, colorHex: '#219896', operator: 'viamobilidade', operatorName: 'ViaMobilidade', status, label, description };
 }
 
 const day: StatusResponse = {
@@ -90,6 +90,27 @@ describe('StatusScreen', () => {
     await fireEvent.press(await screen.findByText('Tentar de novo'));
 
     expect(await screen.findByText('Esmeralda')).toBeOnTheScreen();
+  });
+
+  it('shows the operator logo when the app has one', async () => {
+    await render(<StatusScreen load={async () => day} />);
+
+    expect(await screen.findAllByLabelText('Operadora ViaMobilidade')).not.toHaveLength(0);
+  });
+
+  it('shows the operator name when the app has no logo for it', async () => {
+    const data = { ...day, lines: [{ ...day.lines[0], operator: 'nova', operatorName: 'Nova Operadora' }] };
+    await render(<StatusScreen load={async () => data} />);
+
+    expect(await screen.findByText('Nova Operadora')).toBeOnTheScreen();
+  });
+
+  it('shows no operator badge for a line without operator', async () => {
+    const data = { ...day, lines: [{ ...day.lines[0], name: 'Bronze', operator: '', operatorName: '' }] };
+    await render(<StatusScreen load={async () => data} />);
+
+    await screen.findByText('Bronze');
+    expect(screen.queryByLabelText(/^Operadora/)).toBeNull();
   });
 
   it('shows the late night banner when every line is closed', async () => {

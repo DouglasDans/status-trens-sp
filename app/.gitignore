@@ -44,3 +44,6 @@ example
 
 # Yarn 4
 .yarn/install-state.gz
+
+# Firebase config: provided to EAS as a file environment variable, never committed
+google-services.json

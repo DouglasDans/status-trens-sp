@@ -97,6 +97,8 @@ Create packages only when the first test needs them.
 
 Canonical states: `normal`, `reduzida`, `parcial`, `paralisada`, `encerrada`, `desconhecido`. Unmapped source labels map to `desconhecido` and are logged — that log is how new labels get discovered and added to the rules (e.g. "Operação Transitória"/"Assistida" → `normal`: normal operation on limited hours).
 
+Notification rules live in `status.Next` (pure, table tested): the first reading is a baseline; `desconhecido` carries no information; closing never notifies and an ordinary opening (`encerrada → normal`) only does when the last push was about a problem; every other change of canonical state notifies (label/description changes within a state do not). Phase 2 runs without AWS: the store is an interface with an in-memory version locally, DynamoDB arrives in Phase 3.
+
 **The system only relays what sources and operators say.** No schedules or operating rules in code (opening times differ per line and change; only a source says a line is closed); descriptions are always the operator's text.
 
 **Lines, operators and labels are data, not code.** Concessions change and new lines and labels appear over time; never encode that history in code or comments. The system must accept them without refactoring: a new line from a source shows up by itself, the catalog only fixes its presentation, a new operator is one entry in `catalog.Operators`.

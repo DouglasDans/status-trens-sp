@@ -93,7 +93,7 @@ func TestStatusIncludesLinesTheCatalogDoesNotKnow(t *testing.T) {
 	last := body.Lines
 	want := []lineResponse{
 		{Code: 18, Name: "Bronze", ColorHex: "#a0522d", Status: status.Normal, Label: "Operação Normal"},
-		{Code: 19, Name: "Linha 19", ColorHex: fallbackColor, Status: status.Normal, Label: "Operação Normal"},
+		{Code: 19, Name: "Linha 19", ColorHex: catalog.FallbackColor, Status: status.Normal, Label: "Operação Normal"},
 	}
 	for i := range want {
 		if last[i] != want[i] {

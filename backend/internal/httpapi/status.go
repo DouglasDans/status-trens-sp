@@ -4,7 +4,6 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -34,9 +33,6 @@ type lineResponse struct {
 	Label        string       `json:"label"`
 	Description  string       `json:"description"`
 }
-
-// fallbackColor is used for a line neither the catalog nor the source colors.
-const fallbackColor = "#8e8e8a"
 
 // StatusService fetches from the source at most once per ttl, so many app
 // clients never translate into many requests to a third-party endpoint.
@@ -94,30 +90,21 @@ func (s *StatusService) build(snap source.Snapshot) *statusResponse {
 }
 
 func (s *StatusService) line(r source.Reading) lineResponse {
-	entry, known := catalog.Lookup(r.Code)
-	if !known {
+	d := catalog.Present(r.Code, r.Name, r.ColorHex)
+	if !d.Known {
 		s.logger.Info("line missing from catalog", "line", r.Code, "name", r.Name)
 	}
 	return lineResponse{
 		Code:         r.Code,
-		Name:         firstNonEmpty(entry.Name, r.Name, fmt.Sprintf("Linha %d", r.Code)),
-		ColorHex:     firstNonEmpty(entry.ColorHex, r.ColorHex, fallbackColor),
-		TextColorHex: entry.TextColorHex,
-		Operator:     entry.Operator,
-		OperatorName: catalog.Operators[entry.Operator],
+		Name:         d.Name,
+		ColorHex:     d.ColorHex,
+		TextColorHex: d.TextColorHex,
+		Operator:     d.Operator,
+		OperatorName: d.OperatorName,
 		Status:       r.State,
 		Label:        r.Label,
 		Description:  r.Description,
 	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 // NewHandler routes the API.

@@ -24,6 +24,8 @@ Backend (run from `backend/`):
 go test ./...        # all tests (use -race when touching httpapi)
 go vet ./...         # static checks
 go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
+FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller                # polls every POLL_INTERVAL (1m), pushes changes
+FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -send-test 9   # one test push to linha-9
 
 docker build -t status-trens-sp-api .                  # distroless image (~17 MB), non-root
 docker run -d --name status-trens-sp-api -p 8080:8080 status-trens-sp-api
@@ -46,14 +48,15 @@ All of the above (backend and app) must pass before any commit.
 backend/
 ├── cmd/
 │   ├── api/        # wiring + local HTTP server (Phase 1)
-│   └── poller/     # Phase 2
+│   └── poller/     # local loop around poll.Poller.Run (Phase 3: Lambda handler)
 └── internal/
     ├── status/     # domain: canonical states, normalization, change detection — pure, no I/O
     ├── source/     # StatusSource interface, Fallback, clients (proximotrem, cptm); testdata/ has real responses
-    ├── catalog/    # static line metadata: name, color, operator id — the only place to update concessions
+    ├── catalog/    # line metadata as data (name, colors, operator id) and Present(): catalog first, source fills gaps
     ├── httpapi/    # GET /status: merges catalog + readings, 30s cache, serves stale data if sources fail
-    ├── store/      # Phase 2 (DynamoDB)
-    └── notify/     # Phase 2 (FCM)
+    ├── poll/       # one cycle: fetch → status.Next per line → push → save; Store and Notifier interfaces
+    ├── store/      # line memory: InMemory now, DynamoDB in Phase 3
+    └── notify/     # FCM HTTP v1 to topic linha-<code>: icon ic_line_<code>, line color, channel "status", ttl 1h
 app/                # Expo SDK 57, React Native 0.86, expo-router
 └── src/
     ├── app/        # routes: _layout (fonts), index (status), sobre
@@ -72,7 +75,8 @@ Create packages only when the first test needs them.
 
 - `internal/status` is pure domain: no HTTP, no AWS, no clock reads — pass time in as a value.
 - External dependencies enter through small interfaces defined by the consumer (`StatusSource`, later `Store`, `Notifier`).
-- Config via environment variables; secrets never in code or tests.
+- Config via environment variables; secrets never in code or tests. The Firebase service account key lives outside the repo (locally `~/.config/status-trens-sp/`, Phase 3 in SSM) and is read via `FIREBASE_SERVICE_ACCOUNT_FILE`.
+- A failed push leaves the line's memory untouched, so the next cycle detects and pushes the same change again.
 - Wrap errors with context: `fmt.Errorf("fetching proximotrem: %w", err)`. No `panic` outside `main`.
 - Logging with `log/slog`.
 

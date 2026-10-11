@@ -1,26 +1,30 @@
 import { Link } from 'expo-router';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { fetchStatus, type LineStatus, type StatusResponse } from '@/api/status';
 import { Banner } from '@/components/banner';
 import { LineRow } from '@/components/line-row';
+import { PermissionSheet } from '@/components/permission-sheet';
 import { Skeleton } from '@/components/skeleton';
 import { API_URL } from '@/config';
 import { formatClock, groupLines, isNight } from '@/domain/lines';
 import { initialStatusState, statusReducer } from '@/domain/status-state';
 import { loadFavorites, saveFavorites } from '@/favorites/storage';
+import { firebasePush, type PermissionState, type Push } from '@/push';
 import { fonts, icons, star, type Theme } from '@/theme/tokens';
 import { useTheme } from '@/theme/use-theme';
 
-type Props = { load?: () => Promise<StatusResponse> };
+type Props = { load?: () => Promise<StatusResponse>; push?: Push };
 
-export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
+export function StatusScreen({ load = () => fetchStatus(API_URL), push = firebasePush }: Props) {
   const t = useTheme();
   const [state, dispatch] = useReducer(statusReducer, initialStatusState);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [permission, setPermission] = useState<PermissionState>('granted');
+  const [explaining, setExplaining] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
   const refresh = useCallback(async () => {
@@ -34,7 +38,16 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
 
   useEffect(() => {
     refresh();
-    loadFavorites().then(setFavorites);
+    loadFavorites().then((stored) => {
+      setFavorites(stored);
+      // Subscribing again is harmless and repairs any subscription that failed.
+      stored.forEach((code) => push.subscribe(code).catch(() => {}));
+    });
+    const checkPermission = () => push.permission().then(setPermission);
+    checkPermission();
+    // The user may have changed the permission in the settings meanwhile.
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && checkPermission());
+    return () => sub.remove();
     // Load once on mount; later loads are user-driven.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -46,9 +59,16 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setFavorites(next);
     saveFavorites(next);
+    (adding ? push.subscribe(code) : push.unsubscribe(code)).catch(() => {});
+    if (adding && permission === 'undetermined') setExplaining(true);
     // A favorited line moves to the top section; follow it so it does not
     // vanish from view when it was favorited far down the list.
     if (adding) scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
+  const askPermission = async () => {
+    setExplaining(false);
+    setPermission(await push.requestPermission());
   };
 
   const { data } = state;
@@ -91,6 +111,15 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
           action={{ label: 'Tentar de novo', onPress: refresh }}
         />
       )}
+      {permission === 'denied' && favorites.length > 0 && (
+        <Banner
+          theme={t}
+          title="Notificações desativadas"
+          body="Seus favoritos continuam funcionando, mas sem aviso quando o status mudar."
+          icon={icons.bang}
+          action={{ label: 'Ativar nas configurações', onPress: push.openSettings }}
+        />
+      )}
       {night && <Banner theme={t} title="Todas as linhas estão com operação encerrada" icon={icons.moon} />}
 
       <ScrollView
@@ -110,6 +139,8 @@ export function StatusScreen({ load = () => fetchStatus(API_URL) }: Props) {
           />
         )}
       </ScrollView>
+
+      <PermissionSheet visible={explaining} theme={t} onLater={() => setExplaining(false)} onContinue={askPermission} />
     </SafeAreaView>
   );
 }

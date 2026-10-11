@@ -6,7 +6,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 1 — Display.** Go backend running locally exposes `GET /status`; the app consumes it. No AWS, no poller, no push yet (those are Phases 2 and 3).
+**Phase 2 — Notification.** Phase 1 (display) is done: the Go backend runs locally with `GET /status` and the app consumes it. Push is validated end to end on the EAS dev build. The app subscribes each favorite to its FCM topic and handles the notification permission; next come the backend side (change detection, store, FCM sender, poller), notification icons and channels. AWS deploy is Phase 3.
 
 ## Stack
 
@@ -35,7 +35,7 @@ App (run from `app/`, Yarn 4 with `nodeLinker: node-modules` — Metro does not 
 yarn test          # jest-expo + Testing Library v14 (render/fireEvent are async: always await)
 yarn lint          # expo lint (ESLint flat config)
 npx tsc --noEmit   # type check
-npx expo start     # Expo Go on the phone; set EXPO_PUBLIC_API_URL in app/.env (see .env.example)
+npx expo start --dev-client   # needs the EAS dev build on the phone (Expo Go has no Firebase); set EXPO_PUBLIC_API_URL in app/.env (see .env.example)
 ```
 
 All of the above (backend and app) must pass before any commit.
@@ -60,9 +60,10 @@ app/                # Expo SDK 57, React Native 0.86, expo-router
     ├── api/        # GET /status client + contract types
     ├── domain/     # pure logic: grouping, late-night detection, screen state reducer
     ├── favorites/  # AsyncStorage persistence
+    ├── push/       # FCM topic per line (`linha-<code>`), notification permission; `Push` is injected into the screen
     ├── theme/      # tokens from the Claude Design reference, contrast helpers
-    ├── components/ # LineRow, Banner, Skeleton, StatusDot
-    └── screens/    # StatusScreen (takes `load` as a prop for tests)
+    ├── components/ # LineRow, Banner, Skeleton, StatusDot, PermissionSheet
+    └── screens/    # StatusScreen (takes `load` and `push` as props for tests)
 ```
 
 Create packages only when the first test needs them.
@@ -89,7 +90,8 @@ Create packages only when the first test needs them.
 - The row shows the source `label` (e.g. "Atividade Programada") with the canonical state's color and icon.
 - Logic that can be pure goes in `src/domain` and is unit tested; screens get dependencies as props.
 - Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a transparent background; in dark mode `logoFor` uses the operator's own dark variant when it has one — Metrô: the official "traço grosso" signature extracted from the Metrô visual identity guide — and tints every other logo fully white). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
-- Firebase: `@react-native-firebase/*` v26 (modular API only). Expo Go keeps working until app code imports Firebase (`npx expo start --go`); after that, use the EAS dev build (`eas.json` profile `development`). `app/google-services.json` is committed on purpose: it only identifies the Firebase project and ships inside every APK. The secret is the Firebase service account used by the backend to send pushes — that one never goes to git.
+- Push: favoriting subscribes to `linha-<code>`, unfavoriting unsubscribes, and every stored favorite is subscribed again on app start (idempotent; repairs failed subscriptions). A failed subscription never blocks favoriting. On Android 13+ the first favorite opens the explanation sheet, then Android's dialog; a refusal is remembered in AsyncStorage (Android only says granted or not) and shows the "Notificações desativadas" banner while there are favorites. The permission is checked again when the app returns to the foreground. Firebase is mocked in `jest.setup.ts`.
+- Firebase: `@react-native-firebase/*` v26 (modular API only). App code imports Firebase, so Expo Go no longer runs the app: use the EAS dev build (`eas.json` profile `development`, `eas build --profile development --platform android`). JS-only changes need no new build. `app/google-services.json` is committed on purpose: it only identifies the Firebase project and ships inside every APK. The secret is the Firebase service account used by the backend to send pushes — that one never goes to git.
 
 ## Domain essentials
 

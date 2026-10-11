@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { ScrollView } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AppState, ScrollView } from 'react-native';
 
 import type { LineStatus, StatusResponse } from '@/api/status';
+import type { PermissionState, Push } from '@/push';
 
 import { StatusScreen } from './status-screen';
 
@@ -119,5 +120,132 @@ describe('StatusScreen', () => {
 
     expect(await screen.findByText('Todas as linhas estão com operação encerrada')).toBeOnTheScreen();
     expect(screen.queryByText(/4h40/)).toBeNull();
+  });
+
+  describe('push', () => {
+    function fakePush(permission: PermissionState = 'granted', answer: 'granted' | 'denied' = 'granted') {
+      return {
+        subscribe: jest.fn(async () => {}),
+        unsubscribe: jest.fn(async () => {}),
+        permission: jest.fn(async () => permission),
+        requestPermission: jest.fn(async () => answer),
+        openSettings: jest.fn(),
+      } satisfies Push;
+    }
+
+    it('subscribes to a line when it is favorited', async () => {
+      const push = fakePush();
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+
+      expect(push.subscribe).toHaveBeenCalledWith(9);
+    });
+
+    it('unsubscribes from a line when it leaves the favorites', async () => {
+      await AsyncStorage.setItem('favorites', '[9]');
+      const push = fakePush();
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Remover linha 9 Esmeralda dos favoritos'));
+
+      expect(push.unsubscribe).toHaveBeenCalledWith(9);
+    });
+
+    it('subscribes again to every stored favorite on open', async () => {
+      await AsyncStorage.setItem('favorites', '[7,9]');
+      const push = fakePush();
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await screen.findByLabelText('Remover linha 9 Esmeralda dos favoritos');
+      expect(push.subscribe).toHaveBeenCalledWith(7);
+      expect(push.subscribe).toHaveBeenCalledWith(9);
+    });
+
+    it('keeps the favorite when the subscription fails', async () => {
+      const push = fakePush();
+      push.subscribe.mockRejectedValueOnce(new Error('offline'));
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+
+      expect(await screen.findByLabelText('Remover linha 9 Esmeralda dos favoritos')).toBeOnTheScreen();
+    });
+
+    it('explains the notifications on the first favorite, then asks Android', async () => {
+      const push = fakePush('undetermined');
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+      expect(await screen.findByText('Avisar quando suas linhas mudarem?')).toBeOnTheScreen();
+      expect(push.requestPermission).not.toHaveBeenCalled();
+
+      await fireEvent.press(screen.getByText('Continuar'));
+
+      expect(push.requestPermission).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Avisar quando suas linhas mudarem?')).toBeNull();
+    });
+
+    it('keeps the favorite and asks nothing when the user says not now', async () => {
+      const push = fakePush('undetermined');
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+      await fireEvent.press(await screen.findByText('Agora não'));
+
+      expect(push.requestPermission).not.toHaveBeenCalled();
+      expect(screen.queryByText('Avisar quando suas linhas mudarem?')).toBeNull();
+      expect(screen.getByLabelText('Remover linha 9 Esmeralda dos favoritos')).toBeOnTheScreen();
+      expect(push.subscribe).toHaveBeenCalledWith(9);
+    });
+
+    it('does not explain anything when notifications are already allowed', async () => {
+      await render(<StatusScreen load={async () => day} push={fakePush('granted')} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+
+      expect(screen.queryByText('Avisar quando suas linhas mudarem?')).toBeNull();
+    });
+
+    it('warns that notifications are off once the user denies them', async () => {
+      const push = fakePush('undetermined', 'denied');
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByLabelText('Favoritar linha 9 Esmeralda'));
+      await fireEvent.press(await screen.findByText('Continuar'));
+
+      expect(await screen.findByText('Notificações desativadas')).toBeOnTheScreen();
+    });
+
+    it('sends the user to the settings from the denied banner', async () => {
+      await AsyncStorage.setItem('favorites', '[9]');
+      const push = fakePush('denied');
+      await render(<StatusScreen load={async () => day} push={push} />);
+
+      await fireEvent.press(await screen.findByText('Ativar nas configurações'));
+
+      expect(push.openSettings).toHaveBeenCalled();
+    });
+
+    it('does not warn about notifications without favorites', async () => {
+      await render(<StatusScreen load={async () => day} push={fakePush('denied')} />);
+
+      await screen.findByText('Esmeralda');
+      expect(screen.queryByText('Notificações desativadas')).toBeNull();
+    });
+
+    it('checks the permission again when the user comes back to the app', async () => {
+      await AsyncStorage.setItem('favorites', '[9]');
+      const listen = jest.spyOn(AppState, 'addEventListener');
+      const push = fakePush('denied');
+      await render(<StatusScreen load={async () => day} push={push} />);
+      expect(await screen.findByText('Notificações desativadas')).toBeOnTheScreen();
+
+      push.permission.mockResolvedValue('granted');
+      const onChange = listen.mock.calls.find(([type]) => type === 'change')?.[1];
+      await act(async () => onChange?.('active'));
+
+      expect(screen.queryByText('Notificações desativadas')).toBeNull();
+    });
   });
 });

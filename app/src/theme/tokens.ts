@@ -13,6 +13,10 @@ const light = {
   skel: '#E9E8E3',
   banner: '#E9E9E4',
   grayBadge: '#8E8E8A',
+  scrim: 'rgba(0,0,0,.42)',
+  sheet: '#FFFFFF',
+  primary: '#151515',
+  primaryInk: '#FFFFFF',
   tones: {
     green: { fill: '#1F8A47', glyph: '#FFFFFF', label: '#1A7A3E' },
     yellow: { fill: '#E5AE00', glyph: '#151515', label: '#7A5400' },
@@ -33,6 +37,10 @@ const dark: Theme = {
   skel: '#27282B',
   banner: '#26272A',
   grayBadge: '#4D4E52',
+  scrim: 'rgba(0,0,0,.6)',
+  sheet: '#1E1F21',
+  primary: '#EDEDEA',
+  primaryInk: '#111213',
   tones: {
     green: { fill: '#4CC27A', glyph: '#0F1A13', label: '#5ACB85' },
     yellow: { fill: '#F2C440', glyph: '#151515', label: '#F2C440' },
@@ -62,6 +70,9 @@ export const icons = {
   q: 'M6 6.3a2 2 0 1 1 2.8 1.8c-.6.3-.8.7-.8 1.3M8 11.6v.2',
   info: 'M8 7.4v4M8 4.6v.2',
 };
+
+// 24x24 stroke path from the design's permission sheet.
+export const bell = 'M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5h4';
 
 export const star = 'M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z';
 

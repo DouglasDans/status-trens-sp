@@ -6,7 +6,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 2 — Notification.** Phase 1 (display) is done: the Go backend runs locally with `GET /status` and the app consumes it. Push is validated end to end on the EAS dev build. The app subscribes each favorite to its FCM topic and handles the notification permission; next come the backend side (change detection, store, FCM sender, poller), notification icons and channels. AWS deploy is Phase 3.
+**Phase 2 — Notification.** Phase 1 (display) is done: the Go backend runs locally with `GET /status` and the app consumes it. Push is validated end to end on the EAS dev build. The app subscribes each favorite to its FCM topic and handles the notification permission; the backend detects changes and sends them through FCM (`cmd/poller`, local); the app ships per-line notification icons and the "status" channel. AWS deploy is Phase 3.
 
 ## Stack
 
@@ -58,6 +58,8 @@ backend/
     ├── store/      # line memory: InMemory now, DynamoDB in Phase 3
     └── notify/     # FCM HTTP v1 to topic linha-<code>: icon ic_line_<code>, line color, channel "status", ttl 1h
 app/                # Expo SDK 57, React Native 0.86, expo-router
+├── assets/notification/  # generated ic_line_N small icons (scripts/notification-icons.sh, ImageMagick 7)
+├── plugins/        # with-notifications: copies the icons into res/ and creates the "status" channel at prebuild
 └── src/
     ├── app/        # routes: _layout (fonts), index (status), sobre
     ├── api/        # GET /status client + contract types
@@ -96,6 +98,7 @@ Create packages only when the first test needs them.
 - Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a transparent background; in dark mode `logoFor` uses the operator's own dark variant when it has one — Metrô: the official "traço grosso" signature extracted from the Metrô visual identity guide — and tints every other logo fully white). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
 - Push: favoriting subscribes to `linha-<code>`, unfavoriting unsubscribes, and every stored favorite is subscribed again on app start (idempotent; repairs failed subscriptions). A failed subscription never blocks favoriting. On Android 13+ the first favorite opens the explanation sheet, then Android's dialog; a refusal is remembered in AsyncStorage (Android only says granted or not) and shows the "Notificações desativadas" banner while there are favorites. The permission is checked again when the app returns to the foreground. Firebase is mocked in `jest.setup.ts`.
 - Firebase: `@react-native-firebase/*` v26 (modular API only). App code imports Firebase, so Expo Go no longer runs the app: use the EAS dev build (`eas.json` profile `development`, `eas build --profile development --platform android`). JS-only changes need no new build. `app/google-services.json` is committed on purpose: it only identifies the Firebase project and ships inside every APK. The secret is the Firebase service account used by the backend to send pushes — that one never goes to git.
+- Notifications are FCM notification messages displayed by Android, never by the app: small icon `ic_line_N` (white rounded square, number knocked out; Android keeps only alpha) tinted with the line color sent by the backend, single channel `status` (set as RNFB's default in `app/firebase.json`). No large icon and nothing shown while the app is open — both by decision. Icons and channel are native: changing them needs a new EAS build.
 
 ## Domain essentials
 

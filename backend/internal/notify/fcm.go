@@ -44,6 +44,10 @@ func Compose(code int, name, colorHex, label, description string) Message {
 type FCM struct {
 	client   *http.Client // adds the OAuth token to every request
 	endpoint string
+	// ImageBaseURL is where the colored line badges are published, as
+	// <ImageBaseURL>/linha-<code>.png. Android shows the badge as the
+	// notification's picture; empty sends no picture.
+	ImageBaseURL string
 }
 
 // NewFCM authenticates with a Firebase service account key (JSON). The
@@ -62,6 +66,7 @@ func NewFCM(ctx context.Context, serviceAccount []byte) (*FCM, error) {
 type androidNotification struct {
 	Icon      string `json:"icon"`
 	Color     string `json:"color,omitempty"`
+	Image     string `json:"image,omitempty"`
 	ChannelID string `json:"channel_id"`
 }
 
@@ -92,6 +97,9 @@ func (f *FCM) Send(ctx context.Context, m Message) error {
 		Icon:      fmt.Sprintf("ic_line_%d", m.Line),
 		Color:     m.ColorHex,
 		ChannelID: channelID,
+	}
+	if f.ImageBaseURL != "" {
+		req.Message.Android.Notification.Image = fmt.Sprintf("%s/linha-%d.png", f.ImageBaseURL, m.Line)
 	}
 
 	body, err := json.Marshal(req)

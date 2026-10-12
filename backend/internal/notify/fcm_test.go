@@ -95,6 +95,51 @@ func TestSendOmitsAnEmptyColor(t *testing.T) {
 	}
 }
 
+func TestSendAttachesTheLineImage(t *testing.T) {
+	var got struct {
+		Message struct {
+			Android struct {
+				Notification struct {
+					Image string `json:"image"`
+				} `json:"notification"`
+			} `json:"android"`
+		} `json:"message"`
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Error(err)
+		}
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	defer srv.Close()
+
+	fcm := &FCM{client: srv.Client(), endpoint: srv.URL, ImageBaseURL: "https://images.example/notification"}
+	if err := fcm.Send(context.Background(), Message{Line: 9, Title: "Linha 9 – Esmeralda", Body: "Paralisada"}); err != nil {
+		t.Fatal(err)
+	}
+	if want := "https://images.example/notification/linha-9.png"; got.Message.Android.Notification.Image != want {
+		t.Errorf("image = %q, want %q", got.Message.Android.Notification.Image, want)
+	}
+}
+
+func TestSendOmitsTheImageWithoutABaseURL(t *testing.T) {
+	var body string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		body = string(b)
+		_, _ = io.WriteString(w, `{}`)
+	}))
+	defer srv.Close()
+
+	fcm := &FCM{client: srv.Client(), endpoint: srv.URL}
+	if err := fcm.Send(context.Background(), Message{Line: 9, Title: "Linha 9", Body: "Paralisada"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, `"image"`) {
+		t.Errorf("body has an image: %s", body)
+	}
+}
+
 func TestSendReportsFCMErrors(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)

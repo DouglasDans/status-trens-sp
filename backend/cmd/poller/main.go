@@ -6,6 +6,7 @@
 //
 //	FIREBASE_SERVICE_ACCOUNT_FILE  path to the Firebase service account key (required, never in git)
 //	POLL_INTERVAL                  Go duration between cycles (default 1m)
+//	NOTIFICATION_IMAGE_BASE_URL    public folder with the line badges (linha-<code>.png); empty sends none
 //
 // With -send-test <line>, it sends one test push to that line's topic and exits.
 package main
@@ -45,6 +46,7 @@ func main() {
 		logger.Error("firebase", "error", err)
 		os.Exit(1)
 	}
+	fcm.ImageBaseURL = os.Getenv("NOTIFICATION_IMAGE_BASE_URL")
 
 	if *testLine != 0 {
 		d := catalog.Present(*testLine, "", "")

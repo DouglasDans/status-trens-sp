@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@expo-google-fonts/ibm-plex-sans": "^0.4.1",
+    "@expo-google-fonts/open-sans": "^0.4.2",
     "@expo/ui": "~57.0.22",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/app": "^26.4.0",

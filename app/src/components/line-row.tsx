@@ -30,7 +30,7 @@ export function LineRow({ line, theme: t, favorite, grayBadge, first, onToggleFa
   return (
     <View style={[styles.row, !first && { borderTopWidth: 1, borderTopColor: t.border }]}>
       <View style={[styles.badge, { backgroundColor: badge }]}>
-        <Text style={{ color: ink, fontFamily: fonts.bold, fontSize: num.length > 1 ? 15 : 17 }}>
+        <Text style={{ color: ink, fontFamily: fonts.badge, fontSize: num.length > 1 ? 15 : 17 }}>
           {num}
         </Text>
       </View>

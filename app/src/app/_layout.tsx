@@ -9,6 +9,7 @@ import {
   IBMPlexSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/ibm-plex-sans';
+import { OpenSans_700Bold } from '@expo-google-fonts/open-sans';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -27,6 +28,7 @@ export default function RootLayout() {
     IBMPlexSans_700Bold,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
+    OpenSans_700Bold,
   });
 
   useEffect(() => {

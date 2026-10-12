@@ -1106,6 +1106,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@expo-google-fonts/open-sans@npm:^0.4.2":
+  version: 0.4.2
+  resolution: "@expo-google-fonts/open-sans@npm:0.4.2"
+  checksum: 10c0/e7694b6825d94c1f75f3377e55019611bc547088e5c7c89d08dccd461342ef0a5ae988fa27a16b36bec42d6ee31f01f60c0f4c0ab117fa1819383b8237a61d89
+  languageName: node
+  linkType: hard
+
 "@expo/cli@npm:^57.0.28":
   version: 57.0.28
   resolution: "@expo/cli@npm:57.0.28"
@@ -11079,6 +11086,7 @@ __metadata:
   dependencies:
     "@expo-google-fonts/ibm-plex-mono": "npm:^0.4.1"
     "@expo-google-fonts/ibm-plex-sans": "npm:^0.4.1"
+    "@expo-google-fonts/open-sans": "npm:^0.4.2"
     "@expo/ui": "npm:~57.0.22"
     "@react-native-async-storage/async-storage": "npm:2.2.0"
     "@react-native-firebase/app": "npm:^26.4.0"

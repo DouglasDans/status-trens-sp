@@ -58,6 +58,8 @@ export const fonts = {
   bold: 'IBMPlexSans_700Bold',
   mono: 'IBMPlexMono_500Medium',
   monoSemibold: 'IBMPlexMono_600SemiBold',
+  // Line number on the badge; the notification picture uses the same font.
+  badge: 'OpenSans_700Bold',
 };
 
 // 16x16 stroke paths from the design.

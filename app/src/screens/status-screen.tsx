@@ -1,6 +1,6 @@
 import { Link } from 'expo-router';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { AppState, LayoutAnimation, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -55,8 +55,6 @@ export function StatusScreen({ load = () => fetchStatus(API_URL), push = firebas
   const toggleFavorite = (code: number) => {
     const adding = !favorites.includes(code);
     const next = adding ? [...favorites, code] : favorites.filter((c) => c !== code);
-    // Animate the line moving between sections instead of jumping.
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setFavorites(next);
     saveFavorites(next);
     (adding ? push.subscribe(code) : push.unsubscribe(code)).catch(() => {});
@@ -156,8 +154,10 @@ type GroupsProps = {
 function Groups({ lines, favorites: favoriteCodes, night, theme: t, onToggleFavorite }: GroupsProps) {
   const { favorites, others } = groupLines(lines, favoriteCodes);
 
-  const card = (group: LineStatus[]) => (
-    <View style={[styles.card, { backgroundColor: t.surface }]}>
+  // Keyed so the favorites card never reuses the hint's native view: Android
+  // kept the hint's dashed-border clipping and drew the card empty.
+  const card = (key: string, group: LineStatus[]) => (
+    <View key={key} style={[styles.card, { backgroundColor: t.surface }]}>
       {group.map((line, i) => (
         <LineRow
           key={line.code}
@@ -177,9 +177,9 @@ function Groups({ lines, favorites: favoriteCodes, night, theme: t, onToggleFavo
       <View style={styles.group}>
         <GroupHeader theme={t} title="FAVORITAS" count={favorites.length ? String(favorites.length) : ''} />
         {favorites.length ? (
-          card(favorites)
+          card('favorites', favorites)
         ) : (
-          <View style={[styles.hint, { borderColor: t.dash }]}>
+          <View key="hint" style={[styles.hint, { borderColor: t.dash }]}>
             <Svg width={20} height={20} viewBox="0 0 24 24">
               <Path d={star} fill="none" stroke={t.muted} strokeWidth={1.8} strokeLinejoin="round" />
             </Svg>
@@ -191,7 +191,7 @@ function Groups({ lines, favorites: favoriteCodes, night, theme: t, onToggleFavo
       </View>
       <View style={styles.group}>
         <GroupHeader theme={t} title={favorites.length ? 'OUTRAS LINHAS' : 'TODAS AS LINHAS'} count={String(others.length)} />
-        {card(others)}
+        {card('others', others)}
       </View>
     </>
   );

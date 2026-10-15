@@ -6,7 +6,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 2 — Notification.** Phase 1 (display) is done: the Go backend runs locally with `GET /status` and the app consumes it. Push is validated end to end on the EAS dev build. The app subscribes each favorite to its FCM topic and handles the notification permission; the backend detects changes and sends them through FCM (`cmd/poller`, local); the app ships per-line notification icons and the "status" channel. AWS deploy is Phase 3.
+**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Next: deploy to AWS (Lambda, EventBridge, DynamoDB store, S3 badges, key in SSM).
 
 ## Stack
 
@@ -26,6 +26,7 @@ go vet ./...         # static checks
 go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller                # polls every POLL_INTERVAL (1m), pushes changes
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -send-test 9   # one test push to linha-9 (add NOTIFICATION_IMAGE_BASE_URL for the badge)
+FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -seed 3=paralisada   # dev only: line 3 starts as paralisada, so the first real reading is pushed (full cycle, no waiting)
 go run ./cmd/badges -out badges   # line badges for the notification picture; publish them after a catalog change
 
 docker build -t status-trens-sp-api .                  # distroless image (~17 MB), non-root

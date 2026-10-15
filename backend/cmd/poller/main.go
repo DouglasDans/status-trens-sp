@@ -9,6 +9,9 @@
 //	NOTIFICATION_IMAGE_BASE_URL    public folder with the line badges (linha-<code>.png); empty sends none
 //
 // With -send-test <line>, it sends one test push to that line's topic and exits.
+// With -seed <line>=<state> (dev only), that line starts with the given state
+// instead of a baseline, so the first real reading that differs is pushed:
+// the whole cycle runs for real without waiting for an actual change.
 package main
 
 import (
@@ -25,11 +28,13 @@ import (
 	"github.com/DouglasDans/status-trens-sp/backend/internal/notify"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/poll"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/source"
+	"github.com/DouglasDans/status-trens-sp/backend/internal/status"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/store"
 )
 
 func main() {
 	testLine := flag.Int("send-test", 0, "send one test push to this line's topic and exit")
+	seed := flag.String("seed", "", "dev only: <line>=<state> assumed before the first poll, e.g. 3=paralisada")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
@@ -65,13 +70,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	memory := store.NewInMemory()
+	if *seed != "" {
+		code, state, err := parseSeed(*seed)
+		if err != nil {
+			logger.Error("-seed", "error", err)
+			os.Exit(1)
+		}
+		_ = memory.Save(ctx, code, status.Memory{State: state, LastNotified: state})
+		logger.Info("seeded", "line", code, "state", state)
+	}
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	p := &poll.Poller{
 		Source: source.Fallback{
 			source.NewProximoTrem(source.ProximoTremURL, client),
 			source.NewCPTM(source.CPTMURL, client),
 		},
-		Store:    store.NewInMemory(),
+		Store:    memory,
 		Notifier: fcm,
 		Logger:   logger,
 	}

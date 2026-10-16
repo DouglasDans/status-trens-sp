@@ -4,7 +4,8 @@
 //
 // Environment:
 //
-//	FIREBASE_SERVICE_ACCOUNT_FILE  path to the Firebase service account key (required, never in git)
+//	FIREBASE_SERVICE_ACCOUNT_PARAM SSM SecureString holding the Firebase service account key (AWS)
+//	FIREBASE_SERVICE_ACCOUNT_FILE  path to that key when there is no parameter (local; never in git)
 //	POLL_INTERVAL                  Go duration between cycles (default 1m)
 //	NOTIFICATION_IMAGE_BASE_URL    public folder with the line badges (linha-<code>.png); empty sends none
 //
@@ -24,6 +25,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+
 	"github.com/DouglasDans/status-trens-sp/backend/internal/catalog"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/notify"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/poll"
@@ -41,9 +45,19 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	key, err := os.ReadFile(os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE"))
+	src := keySource{Param: os.Getenv("FIREBASE_SERVICE_ACCOUNT_PARAM"), File: os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE")}
+	if src.Param != "" {
+		cfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			logger.Error("aws config", "error", err)
+			os.Exit(1)
+		}
+		src.SSM = ssm.NewFromConfig(cfg)
+	}
+	// Read once per process: in Lambda that is once per cold start.
+	key, err := serviceAccountKey(ctx, src)
 	if err != nil {
-		logger.Error("reading FIREBASE_SERVICE_ACCOUNT_FILE", "error", err)
+		logger.Error("firebase key", "error", err)
 		os.Exit(1)
 	}
 	fcm, err := notify.NewFCM(ctx, key)

@@ -79,7 +79,7 @@ Create packages only when the first test needs them.
 
 - `internal/status` is pure domain: no HTTP, no AWS, no clock reads — pass time in as a value.
 - External dependencies enter through small interfaces defined by the consumer (`StatusSource`, later `Store`, `Notifier`).
-- Config via environment variables; secrets never in code or tests. The Firebase service account key lives outside the repo (locally `~/.config/status-trens-sp/`, Phase 3 in SSM) and is read via `FIREBASE_SERVICE_ACCOUNT_FILE`.
+- Config via environment variables; secrets never in code or tests. The Firebase service account key lives outside the repo: locally `~/.config/status-trens-sp/` via `FIREBASE_SERVICE_ACCOUNT_FILE`, in AWS an SSM SecureString via `FIREBASE_SERVICE_ACCOUNT_PARAM` (read once per cold start).
 - A failed push leaves the line's memory untouched, so the next cycle detects and pushes the same change again.
 - Wrap errors with context: `fmt.Errorf("fetching proximotrem: %w", err)`. No `panic` outside `main`.
 - Logging with `log/slog`.

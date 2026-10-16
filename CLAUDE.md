@@ -49,7 +49,7 @@ All of the above (backend and app) must pass before any commit.
 ```
 backend/
 ├── cmd/
-│   ├── api/        # wiring + local HTTP server (Phase 1)
+│   ├── api/        # GET /status: local HTTP server, or in Lambda the Function URL (functionurl.go adapts the event to http.Handler)
 │   └── poller/     # poll.Poller.Run: local loop (in-memory store) or, in Lambda, one cycle per invocation (DynamoDB, LINES_TABLE)
 └── internal/
     ├── status/     # domain: canonical states, normalization, change detection — pure, no I/O

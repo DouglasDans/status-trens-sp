@@ -1,5 +1,6 @@
-// Command api serves GET /status for the app. In Phase 1 it runs locally and
-// fetches from the sources on demand (cached); in Phase 3 it moves to Lambda.
+// Command api serves GET /status for the app, fetching from the sources on
+// demand (cached). Locally it is an HTTP server on PORT; in Lambda it answers
+// the Function URL, and the cache lives as long as the warm instance.
 package main
 
 import (
@@ -11,6 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/aws/aws-lambda-go/lambda"
 
 	"github.com/DouglasDans/status-trens-sp/backend/internal/httpapi"
 	"github.com/DouglasDans/status-trens-sp/backend/internal/source"
@@ -27,6 +30,11 @@ func main() {
 		source.NewCPTM(source.CPTMURL, client),
 	}
 	svc := httpapi.NewStatusService(src, cacheTTL, time.Now, logger)
+
+	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
+		lambda.Start(functionURL(httpapi.NewHandler(svc)))
+		return
+	}
 
 	addr := ":" + envOr("PORT", "8080")
 	srv := &http.Server{

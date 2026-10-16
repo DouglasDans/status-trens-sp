@@ -57,7 +57,7 @@ backend/
     ├── catalog/    # line metadata as data (name, colors, operator id) and Present(): catalog first, source fills gaps
     ├── httpapi/    # GET /status: merges catalog + readings, 30s cache, serves stale data if sources fail
     ├── poll/       # one cycle: fetch → status.Next per line → push → save; Store and Notifier interfaces
-    ├── store/      # line memory: InMemory now, DynamoDB in Phase 3
+    ├── store/      # line memory: InMemory (local) and DynamoDB (one item per line: code, state, lastNotified)
     └── notify/     # FCM HTTP v1 to topic linha-<code>: icon ic_line_<code>, line color, channel "status", ttl 1h
 app/                # Expo SDK 57, React Native 0.86, expo-router
 ├── assets/notification/  # generated ic_line_N small icons (scripts/notification-icons.sh, ImageMagick 7)

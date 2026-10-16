@@ -14,4 +14,3 @@
 .DS_Store
 
 # rendered by backend/cmd/badges, published outside the repo
-backend/badges/

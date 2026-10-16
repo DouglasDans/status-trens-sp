@@ -6,7 +6,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Next: deploy to AWS (Lambda, EventBridge, DynamoDB store, S3 badges, key in SSM).
+**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Next: deploy to AWS (Lambda, EventBridge, DynamoDB store, key in SSM).
 
 ## Stack
 
@@ -27,7 +27,7 @@ go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller                # polls every POLL_INTERVAL (1m), pushes changes
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -send-test 9   # one test push to linha-9 (add NOTIFICATION_IMAGE_BASE_URL for the badge)
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -seed 3=paralisada   # dev only: line 3 starts as paralisada, so the first real reading is pushed (full cycle, no waiting)
-go run ./cmd/badges -out badges   # line badges for the notification picture; publish them after a catalog change
+go run ./cmd/badges -out badges   # line badges for the notification picture (backend/badges/); commit them after a catalog change
 
 docker build -t status-trens-sp-api .                  # distroless image (~17 MB), non-root
 docker run -d --name status-trens-sp-api -p 8080:8080 status-trens-sp-api
@@ -100,7 +100,7 @@ Create packages only when the first test needs them.
 - Operator logos: `src/operators.ts` maps operator id → SVG in `assets/images/operators/` (rendered by expo-image on a transparent background; in dark mode `logoFor` uses the operator's own dark variant when it has one — Metrô: the official "traço grosso" signature extracted from the Metrô visual identity guide — and tints every other logo fully white). An operator without a logo shows its name; a line without operator shows no badge. All behind `SHOW_OPERATOR_LOGO` (trademark risk).
 - Push: favoriting subscribes to `linha-<code>`, unfavoriting unsubscribes, and every stored favorite is subscribed again on app start (idempotent; repairs failed subscriptions). A failed subscription never blocks favoriting. On Android 13+ the first favorite opens the explanation sheet, then Android's dialog; a refusal is remembered in AsyncStorage (Android only says granted or not) and shows the "Notificações desativadas" banner while there are favorites. The permission is checked again when the app returns to the foreground. Firebase is mocked in `jest.setup.ts`.
 - Firebase: `@react-native-firebase/*` v26 (modular API only). App code imports Firebase, so Expo Go no longer runs the app: use the EAS dev build (`eas.json` profile `development`, `eas build --profile development --platform android`). JS-only changes need no new build. `app/google-services.json` is committed on purpose: it only identifies the Firebase project and ships inside every APK. The secret is the Firebase service account used by the backend to send pushes — that one never goes to git.
-- Notifications are FCM notification messages displayed by Android, never by the app: small icon `ic_line_N` (white rounded square, number knocked out; Android keeps only alpha) tinted with the line color sent by the backend, single channel `status` (set as RNFB's default in `app/firebase.json`). The colored line badge comes as the FCM `image` (Android shows it as the picture on the right): `backend/cmd/badges` renders `linha-<code>.png` from the catalog (Open Sans Bold, ImageMagick 7) and they are published at `NOTIFICATION_IMAGE_BASE_URL` (for now the public repo DouglasDans/status-trens-sp-assets; S3 in Phase 3). Nothing is shown while the app is open, by decision. Icons and channel are native: changing them needs a new EAS build.
+- Notifications are FCM notification messages displayed by Android, never by the app: small icon `ic_line_N` (white rounded square, number knocked out; Android keeps only alpha) tinted with the line color sent by the backend, single channel `status` (set as RNFB's default in `app/firebase.json`). The colored line badge comes as the FCM `image` (Android shows it as the picture on the right): `backend/cmd/badges` renders `linha-<code>.png` from the catalog (Open Sans Bold, ImageMagick 7) into `backend/badges/`, committed and served from this public repo: `NOTIFICATION_IMAGE_BASE_URL=https://raw.githubusercontent.com/DouglasDans/status-trens-sp/main/backend/badges`. Nothing is shown while the app is open, by decision. Icons and channel are native: changing them needs a new EAS build.
 
 ## Domain essentials
 

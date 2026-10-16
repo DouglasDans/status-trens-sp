@@ -35,6 +35,19 @@ describe('StatusScreen', () => {
     expect(screen.getByText('Atualizado às 22:21')).toBeOnTheScreen();
   });
 
+  it('loads the status again when the user comes back to the app', async () => {
+    const listen = jest.spyOn(AppState, 'addEventListener');
+    const later = { ...day, updatedAt: new Date(2026, 9, 8, 7, 5).toISOString() };
+    const load = jest.fn().mockResolvedValueOnce(day).mockResolvedValueOnce(later);
+    await render(<StatusScreen load={load} />);
+    expect(await screen.findByText('Atualizado às 22:21')).toBeOnTheScreen();
+
+    const onChange = listen.mock.calls.find(([type]) => type === 'change')?.[1];
+    await act(async () => onChange?.('active'));
+
+    expect(await screen.findByText('Atualizado às 7:05')).toBeOnTheScreen();
+  });
+
   it('invites the user to favorite when there are no favorites', async () => {
     await render(<StatusScreen load={async () => day} />);
 

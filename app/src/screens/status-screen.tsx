@@ -45,8 +45,14 @@ export function StatusScreen({ load = () => fetchStatus(API_URL), push = firebas
     });
     const checkPermission = () => push.permission().then(setPermission);
     checkPermission();
-    // The user may have changed the permission in the settings meanwhile.
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && checkPermission());
+    // Android may keep the app alive in the background for hours: coming back
+    // loads the status again, and the user may have changed the permission
+    // in the settings meanwhile.
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      refresh();
+      checkPermission();
+    });
     return () => sub.remove();
     // Load once on mount; later loads are user-driven.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -50,7 +50,7 @@ All of the above (backend and app) must pass before any commit.
 backend/
 ├── cmd/
 │   ├── api/        # wiring + local HTTP server (Phase 1)
-│   └── poller/     # local loop around poll.Poller.Run (Phase 3: Lambda handler)
+│   └── poller/     # poll.Poller.Run: local loop (in-memory store) or, in Lambda, one cycle per invocation (DynamoDB, LINES_TABLE)
 └── internal/
     ├── status/     # domain: canonical states, normalization, change detection — pure, no I/O
     ├── source/     # StatusSource interface, Fallback, clients (proximotrem, cptm); testdata/ has real responses

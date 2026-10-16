@@ -1,13 +1,15 @@
 // Command poller checks the sources on an interval and pushes status changes
-// to the favorites of each line. In Phase 2 it runs locally with an in-memory
-// store; in Phase 3 the same cycle (poll.Poller.Run) moves to Lambda.
+// to the favorites of each line. Locally it loops on POLL_INTERVAL with an
+// in-memory store; in Lambda each invocation runs one cycle (poll.Poller.Run)
+// against the DynamoDB table named by LINES_TABLE.
 //
 // Environment:
 //
 //	FIREBASE_SERVICE_ACCOUNT_PARAM SSM SecureString holding the Firebase service account key (AWS)
 //	FIREBASE_SERVICE_ACCOUNT_FILE  path to that key when there is no parameter (local; never in git)
-//	POLL_INTERVAL                  Go duration between cycles (default 1m)
+//	POLL_INTERVAL                  Go duration between cycles (default 1m; local only)
 //	NOTIFICATION_IMAGE_BASE_URL    public folder with the line badges (linha-<code>.png); empty sends none
+//	LINES_TABLE                    DynamoDB table with the line memory (required in Lambda)
 //
 // With -send-test <line>, it sends one test push to that line's topic and exits.
 // With -seed <line>=<state> (dev only), that line starts with the given state
@@ -25,7 +27,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
 	"github.com/DouglasDans/status-trens-sp/backend/internal/catalog"
@@ -45,10 +50,14 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Lambda sets AWS_LAMBDA_FUNCTION_NAME: then each invocation runs one cycle
+	// against DynamoDB, and EventBridge Scheduler supplies the interval.
+	inLambda := os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != ""
 	src := keySource{Param: os.Getenv("FIREBASE_SERVICE_ACCOUNT_PARAM"), File: os.Getenv("FIREBASE_SERVICE_ACCOUNT_FILE")}
-	if src.Param != "" {
-		cfg, err := config.LoadDefaultConfig(ctx)
-		if err != nil {
+	var cfg aws.Config
+	if src.Param != "" || inLambda {
+		var err error
+		if cfg, err = config.LoadDefaultConfig(ctx); err != nil {
 			logger.Error("aws config", "error", err)
 			os.Exit(1)
 		}
@@ -78,6 +87,27 @@ func main() {
 		return
 	}
 
+	client := &http.Client{Timeout: 10 * time.Second}
+	p := &poll.Poller{
+		Source: source.Fallback{
+			source.NewProximoTrem(source.ProximoTremURL, client),
+			source.NewCPTM(source.CPTMURL, client),
+		},
+		Notifier: fcm,
+		Logger:   logger,
+	}
+
+	if inLambda {
+		table := os.Getenv("LINES_TABLE")
+		if table == "" {
+			logger.Error("LINES_TABLE is required in Lambda")
+			os.Exit(1)
+		}
+		p.Store = store.NewDynamoDB(dynamodb.NewFromConfig(cfg), table)
+		lambda.Start(p.Run)
+		return
+	}
+
 	interval, err := time.ParseDuration(envOr("POLL_INTERVAL", "1m"))
 	if err != nil {
 		logger.Error("POLL_INTERVAL", "error", err)
@@ -95,16 +125,7 @@ func main() {
 		logger.Info("seeded", "line", code, "state", state)
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	p := &poll.Poller{
-		Source: source.Fallback{
-			source.NewProximoTrem(source.ProximoTremURL, client),
-			source.NewCPTM(source.CPTMURL, client),
-		},
-		Store:    memory,
-		Notifier: fcm,
-		Logger:   logger,
-	}
+	p.Store = memory
 
 	logger.Info("polling", "interval", interval)
 	ticker := time.NewTicker(interval)

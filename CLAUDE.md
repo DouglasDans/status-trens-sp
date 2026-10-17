@@ -6,7 +6,7 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Next: deploy to AWS (Lambda, EventBridge, DynamoDB store, key in SSM).
+**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Deployed to AWS `sa-east-1` by `backend/deploy/` (AWS CLI scripts, no CloudFormation and no bucket, by decision): Lambdas `status-trens-sp-poller` (EventBridge Scheduler every minute, DynamoDB `status-trens-sp-lines`, key in SSM `/status-trens-sp/firebase-sa`) and `status-trens-sp-api` (public Function URL). Validated by editing line 3 to `paralisada` in the table: the next cycle pushed. Next: app build pointing at production. The account allows no reserved concurrency yet (quota 10), so overlap is prevented by a 30 s timeout, no retries and a 60 s max event age.
 
 ## Stack
 
@@ -28,6 +28,9 @@ FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run 
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -send-test 9   # one test push to linha-9 (add NOTIFICATION_IMAGE_BASE_URL for the badge)
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -seed 3=paralisada   # dev only: line 3 starts as paralisada, so the first real reading is pushed (full cycle, no waiting)
 go run ./cmd/badges -out badges   # line badges for the notification picture (backend/badges/); commit them after a catalog change
+
+deploy/deploy.sh     # AWS sa-east-1: creates what is missing, updates what exists (code goes up as a zip, no bucket); prints the GET /status URL
+deploy/teardown.sh   # deletes everything deploy.sh created (keeps the SSM parameter with the Firebase key)
 
 docker build -t status-trens-sp-api .                  # distroless image (~17 MB), non-root
 docker run -d --name status-trens-sp-api -p 8080:8080 status-trens-sp-api

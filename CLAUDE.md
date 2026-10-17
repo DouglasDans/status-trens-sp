@@ -42,6 +42,7 @@ App (run from `app/`, Yarn 4 with `nodeLinker: node-modules` — Metro does not 
 yarn test          # jest-expo + Testing Library v14 (render/fireEvent are async: always await)
 yarn lint          # expo lint (ESLint flat config)
 npx tsc --noEmit   # type check
+eas build --profile preview --platform android   # standalone APK (no Metro) pointing at the production API (EXPO_PUBLIC_API_URL in eas.json)
 npx expo start --dev-client   # needs the EAS dev build on the phone (Expo Go has no Firebase); set EXPO_PUBLIC_API_URL in app/.env (see .env.example)
 ```
 

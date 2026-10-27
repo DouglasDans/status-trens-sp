@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"time"
 )
 
@@ -58,4 +59,20 @@ func Collect(ctx context.Context, sources []Named, timeout time.Duration, logger
 		snaps = append(snaps, r.snap)
 	}
 	return snaps
+}
+
+// Timeout is how long each source gets per cycle. The sources usually answer
+// in well under a second; the legacy CPTM endpoint sometimes takes over 20 s,
+// and waiting for it only delays the others' news.
+const Timeout = 4 * time.Second
+
+// All is every source, in priority order: when sources agree on the state,
+// the earlier one's text is shown.
+func All(client *http.Client, logger *slog.Logger) []Named {
+	return []Named{
+		NewProximoTrem(ProximoTremURL, client),
+		NewMetro(MetroURL, client, logger),
+		NewCPTMNovo(CPTMNovoURL, client),
+		NewCPTM(CPTMURL, client),
+	}
 }

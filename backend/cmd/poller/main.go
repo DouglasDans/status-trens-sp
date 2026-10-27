@@ -1,7 +1,8 @@
-// Command poller checks the sources on an interval and pushes status changes
-// to the favorites of each line. Locally it loops on POLL_INTERVAL with an
-// in-memory store; in Lambda each invocation runs one cycle (poll.Poller.Run)
-// against the DynamoDB table named by LINES_TABLE.
+// Command poller checks every source on an interval, merges them line by line,
+// saves the board GET /status serves and pushes status changes to the
+// favorites of each line. Locally it loops on POLL_INTERVAL with in-memory
+// stores; in Lambda each invocation runs one cycle (poll.Poller.Run) against
+// the DynamoDB tables named by LINES_TABLE and BOARD_TABLE.
 //
 // Environment:
 //
@@ -10,6 +11,7 @@
 //	POLL_INTERVAL                  Go duration between cycles (default 1m; local only)
 //	NOTIFICATION_IMAGE_BASE_URL    public folder with the line badges (linha-<code>.png); empty sends none
 //	LINES_TABLE                    DynamoDB table with the line memory (required in Lambda)
+//	BOARD_TABLE                    DynamoDB table with the merged board (required in Lambda)
 //
 // With -send-test <line>, it sends one test push to that line's topic and exits.
 // With -seed <line>=<state> (dev only), that line starts with the given state
@@ -87,23 +89,23 @@ func main() {
 		return
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
 	p := &poll.Poller{
-		Source: source.Fallback{
-			source.NewProximoTrem(source.ProximoTremURL, client),
-			source.NewCPTM(source.CPTMURL, client),
-		},
+		Sources:  source.All(&http.Client{}, logger),
+		Timeout:  source.Timeout,
 		Notifier: fcm,
 		Logger:   logger,
+		Now:      time.Now,
 	}
 
 	if inLambda {
-		table := os.Getenv("LINES_TABLE")
-		if table == "" {
-			logger.Error("LINES_TABLE is required in Lambda")
+		lines, boards := os.Getenv("LINES_TABLE"), os.Getenv("BOARD_TABLE")
+		if lines == "" || boards == "" {
+			logger.Error("LINES_TABLE and BOARD_TABLE are required in Lambda")
 			os.Exit(1)
 		}
-		p.Store = store.NewDynamoDB(dynamodb.NewFromConfig(cfg), table)
+		db := dynamodb.NewFromConfig(cfg)
+		p.Store = store.NewDynamoDB(db, lines)
+		p.Boards = store.NewDynamoBoard(db, boards)
 		lambda.Start(p.Run)
 		return
 	}
@@ -126,6 +128,7 @@ func main() {
 	}
 
 	p.Store = memory
+	p.Boards = store.NewInMemoryBoard()
 
 	logger.Info("polling", "interval", interval)
 	ticker := time.NewTicker(interval)

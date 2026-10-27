@@ -6,7 +6,9 @@ Experimental portfolio project. Full product, architecture and decision docs liv
 
 ## Current phase
 
-**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Deployed to AWS `sa-east-1` by `backend/deploy/` (AWS CLI scripts, no CloudFormation and no bucket, by decision): Lambdas `status-trens-sp-poller` (EventBridge Scheduler every minute, DynamoDB `status-trens-sp-lines`, key in SSM `/status-trens-sp/firebase-sa`) and `status-trens-sp-api` (public Function URL). Validated by editing line 3 to `paralisada` in the table: the next cycle pushed. Next: app build pointing at production. The account allows no reserved concurrency yet (quota 10), so overlap is prevented by a 30 s timeout, no retries and a 60 s max event age.
+**Phase 3 — AWS.** Phase 1 (display) and Phase 2 (notification) are done and run locally: `GET /status` serves the app; the app subscribes each favorite to its FCM topic and handles the notification permission; `cmd/poller` detects changes and pushes them through FCM, validated with a real cycle (`-seed`) on Samsung and Xiaomi devices; the app ships per-line notification icons and the "status" channel. Deployed to AWS `sa-east-1` by `backend/deploy/` (AWS CLI scripts, no CloudFormation and no bucket, by decision): Lambdas `status-trens-sp-poller` (EventBridge Scheduler every minute, DynamoDB `status-trens-sp-lines`, key in SSM `/status-trens-sp/firebase-sa`) and `status-trens-sp-api` (public Function URL). Validated by editing line 3 to `paralisada` in the table: the next cycle pushed. The account allows no reserved concurrency yet (quota 10), so overlap is prevented by a 30 s timeout, no retries and a 60 s max event age.
+
+Modo: Laboratório. **Phase A (per-line merge) is done in code but not deployed**: the poller merges four sources per line and saves a board that `GET /status` reads (BOARD_TABLE), so `backend/deploy/` no longer matches the code — production still runs the code from `cd017a6`. Next: Phase B, a SAM template replacing `backend/deploy/` (creates the board table), then Phase C (app error state, one request on open, new Function URL, APK). Rules and cases: Notion page "Fase A — Junção de fontes".
 
 ## Stack
 
@@ -23,7 +25,7 @@ Backend (run from `backend/`):
 ```sh
 go test ./...        # all tests (use -race when touching httpapi)
 go vet ./...         # static checks
-go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status
+go run ./cmd/api     # local API on :8080 (PORT overrides), GET /status; runs the poll cycle itself every POLL_INTERVAL (1m), in memory, no pushes (503 until the first cycle ends)
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller                # polls every POLL_INTERVAL (1m), pushes changes
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -send-test 9   # one test push to linha-9 (add NOTIFICATION_IMAGE_BASE_URL for the badge)
 FIREBASE_SERVICE_ACCOUNT_FILE=~/.config/status-trens-sp/firebase-sa.json go run ./cmd/poller -seed 3=paralisada   # dev only: line 3 starts as paralisada, so the first real reading is pushed (full cycle, no waiting)
@@ -53,15 +55,16 @@ All of the above (backend and app) must pass before any commit.
 ```
 backend/
 ├── cmd/
-│   ├── api/        # GET /status: local HTTP server, or in Lambda the Function URL (functionurl.go adapts the event to http.Handler)
-│   └── poller/     # poll.Poller.Run: local loop (in-memory store) or, in Lambda, one cycle per invocation (DynamoDB, LINES_TABLE)
+│   ├── api/        # GET /status from the board: local HTTP server polling in memory, or in Lambda the Function URL (BOARD_TABLE; functionurl.go adapts the event to http.Handler)
+│   └── poller/     # poll.Poller.Run: local loop (in-memory stores) or, in Lambda, one cycle per invocation (DynamoDB, LINES_TABLE and BOARD_TABLE)
 └── internal/
     ├── status/     # domain: canonical states, normalization, change detection — pure, no I/O
-    ├── source/     # StatusSource interface, Fallback, clients (proximotrem, cptm); testdata/ has real responses
+    ├── source/     # StatusSource, clients (proximotrem, metro, cptm-novo, cptm), Collect (parallel, per-source timeout, logs failures), Merge (per line, worst state wins); testdata/ has real responses
     ├── catalog/    # line metadata as data (name, colors, operator id) and Present(): catalog first, source fills gaps
-    ├── httpapi/    # GET /status: merges catalog + readings, 30s cache, serves stale data if sources fail
-    ├── poll/       # one cycle: fetch → status.Next per line → push → save; Store and Notifier interfaces
-    ├── store/      # line memory: InMemory (local) and DynamoDB (one item per line: code, state, lastNotified)
+    ├── board/      # Board: the merged lines the poller saves each cycle; Build keeps an unseen line 10 min, then unknown
+    ├── httpapi/    # GET /status: reads the board (never a source), adds the catalog, 30s cache, stale after 3 min or on store failure
+    ├── poll/       # one cycle: collect → merge → save board → status.Next per line → push → save memory; Store, BoardStore and Notifier interfaces
+    ├── store/      # line memory: InMemory and DynamoDB (one item per line: code, state, lastNotified); board: InMemoryBoard and DynamoBoard (own table, one item "current" holding the board as JSON)
     └── notify/     # FCM HTTP v1 to topic linha-<code>: icon ic_line_<code>, line color, channel "status", ttl 1h
 app/                # Expo SDK 57, React Native 0.86, expo-router
 ├── assets/notification/  # generated ic_line_N small icons (scripts/notification-icons.sh, ImageMagick 7)
@@ -117,14 +120,19 @@ Notification rules live in `status.Next` (pure, table tested): the first reading
 
 **Lines, operators and labels are data, not code.** Concessions change and new lines and labels appear over time; never encode that history in code or comments. The system must accept them without refactoring: a new line from a source shows up by itself, the catalog only fixes its presentation, a new operator is one entry in `catalog.Operators`.
 
-Data sources, in priority order:
-1. **Próximo Trem** — `https://fde-proximotrem-prd-hhbqdtdzdyhtgxhr.a01.azurefd.net/api/v1/lines`, no auth, 15 lines, no timestamp in the response.
-2. **CPTM** — `http://apps.cptm.sp.gov.br:8080/AppMobileService/api/LinhasMetropolitanas`, no auth, 11 lines. Uses content negotiation: always send `Accept: application/json` (browsers get XML).
-3. **Direto dos Trens** — requires a token (not available yet).
+Data sources, all consulted in parallel every cycle (4 s each), in priority order (it only breaks ties of text):
+1. **Próximo Trem** (`proximotrem`) — `https://fde-proximotrem-prd-hhbqdtdzdyhtgxhr.a01.azurefd.net/api/v1/lines`, no auth, 15 lines, no timestamp in the response. Moved host without notice in 10/2026.
+2. **Direto do Metrô** (`metro`) — `https://www.metro.sp.gov.br/wp-content/themes/metrosp/direto-metro.php`, HTML parsed with `golang.org/x/net/html` (lines 1–5, 15, 17). A layout change fails the source.
+3. **CPTM website** (`cptm-novo`) — `https://api.cptm.sp.gov.br/AppCPTM/v1/Linhas/ObterStatus`, JSON, lines 10–13, no name or color.
+4. **CPTM legacy** (`cptm`) — `http://apps.cptm.sp.gov.br:8080/AppMobileService/api/LinhasMetropolitanas`, no auth, 11 lines (Metrô and concessions included; no 6, 13, 15, 17), unstable. Uses content negotiation: always send `Accept: application/json` (browsers get XML).
+
+Not used yet: **Direto dos Trens** and **ARTESP API Trilhos** (tokens pending; commercial use needs written permission).
+
+**Per-line merge** (`source.Merge`): the most severe state any source reports wins (paralisada > parcial > reduzida > normal > encerrada), so a line is only normal when every source that reported it agrees; a source that failed or lacks the line does not vote, nor does `desconhecido`. Label and description come from the winning reading; ties go to the reading with a description, then to priority. A line no source reports keeps its last reading for 10 minutes (`board.KeepUnseen`), then shows `desconhecido` until a source reports it again.
 
 The app never calls a source directly; it only talks to our `GET /status`.
 
-Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Linha 4-Amarela" → "Amarela") and color when they have one (CPTM sends none). `GET /status` returns exactly the lines the source reports, sorted by code: catalog metadata wins, the source fills the gaps, and a line nobody colors gets a neutral gray. The catalog may hold lines prepared before they open; they stay hidden until a source reports them. Known trade-off: when the fallback source lacks a line (CPTM has no 13, 15, 17), that line disappears until the primary source is back.
+Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Linha 4-Amarela" → "Amarela") and color when they have one (CPTM sends none). `GET /status` returns exactly the lines the sources report, sorted by code: catalog metadata wins, the sources fill the gaps, and a line nobody colors gets a neutral gray. The catalog may hold lines prepared before they open; they stay hidden until a source reports them.
 
 ## GET /status contract
 
@@ -141,4 +149,4 @@ Sources report status plus the line name (cleaned: "LARANJA" → "Laranja", "Lin
 }
 ```
 
-`operator`/`operatorName`/`textColorHex` are empty for a line without catalog entry (the app then picks the number color by contrast). Line colors and number colors in the catalog follow the current network map and station signs, not contrast math. `stale: true` means every source failed and this is the last known data. `503` with `{"error": ...}` only when there is no data at all. `changedAt` arrives in Phase 2 with the store.
+`operator`/`operatorName`/`textColorHex` are empty for a line without catalog entry (the app then picks the number color by contrast). Line colors and number colors in the catalog follow the current network map and station signs, not contrast math. `source` lists the sources that answered in the last cycle, comma separated (`"proximotrem,metro,cptm"`). `stale: true` means the board is more than 3 minutes old (`httpapi.StaleAfter`) or the store could not be read and this is the instance's last copy. `503` with `{"error": ...}` only when there is no board at all. `changedAt` arrives in Phase 2 with the store.

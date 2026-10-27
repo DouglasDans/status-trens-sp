@@ -13,6 +13,8 @@ func TestNormalize(t *testing.T) {
 		{"real: normal", "Operação Normal", Normal, true},
 		{"real: encerrada", "Operação Encerrada", Encerrada, true},
 		{"real: atividade programada", "Atividade Programada", Reduzida, true},
+		// Real label observed on 2026-10-26 (line 8, Próximo Trem and CPTM).
+		{"real: impacto pontual", "Operação com Impacto Pontual", Reduzida, true},
 
 		// Case, accents and whitespace.
 		{"uppercase", "OPERAÇÃO NORMAL", Normal, true},

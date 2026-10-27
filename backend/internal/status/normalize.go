@@ -18,7 +18,7 @@ var rules = []struct {
 }{
 	{Paralisada, []string{"paralisad", "paralisac", "interromp", "suspens", "sem circulac"}},
 	{Parcial, []string{"parcial"}},
-	{Reduzida, []string{"reduzid", "maior tempo", "maiores intervalos", "lentid", "diferenciad", "restric", "atividade programada"}},
+	{Reduzida, []string{"reduzid", "maior tempo", "maiores intervalos", "lentid", "diferenciad", "restric", "atividade programada", "impact"}},
 	{Encerrada, []string{"encerrad", "fora de operac", "fechad", "nao opera"}},
 	{Normal, []string{"normal", "transitori", "assistid"}},
 }

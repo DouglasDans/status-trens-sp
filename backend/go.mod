@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.33.9
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.70.3
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.79.3
+	golang.org/x/net v0.61.0
 	golang.org/x/oauth2 v0.37.0
 )
 

@@ -102,6 +102,53 @@ func TestCollectAbandonsASourceThatIgnoresTheContext(t *testing.T) {
 	}
 }
 
+// R4.2 with two stuck sources: each one is abandoned at the deadline, not
+// only the first.
+func TestCollectAbandonsEverySourceThatIgnoresTheContext(t *testing.T) {
+	stuckA := &namedFake{name: "metro", block: make(chan struct{})}
+	stuckB := &namedFake{name: "cptm", block: make(chan struct{})}
+	t.Cleanup(func() { close(stuckA.block); close(stuckB.block) })
+
+	done := make(chan []Snapshot, 1)
+	go func() {
+		snaps, _, _ := collect(t, 50*time.Millisecond, ok("proximotrem", 1), stuckA, stuckB)
+		done <- snaps
+	}()
+	select {
+	case snaps := <-done:
+		if got := names(snaps); got != "proximotrem" {
+			t.Errorf("sources = %s, want proximotrem", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Collect still waiting 2 s after a 50 ms timeout")
+	}
+}
+
+// A reading ready right at the deadline is kept, never dropped as a timeout.
+func TestCollectKeepsAnAnswerReadyAtTheDeadline(t *testing.T) {
+	for range 50 {
+		snaps, _, _ := collect(t, time.Millisecond, ok("proximotrem", 1))
+		if len(snaps) != 1 {
+			t.Fatalf("sources = %s, want the answer that was already there", names(snaps))
+		}
+	}
+}
+
+// R18 / R5: a source answering with no line at all counts as failed, so a
+// cycle where every source is empty is a failed cycle, not an empty board.
+func TestCollectTreatsAnEmptyAnswerAsAFailure(t *testing.T) {
+	empty := &namedFake{name: "cptm-novo"}
+
+	snaps, logs, _ := collect(t, time.Second, ok("proximotrem", 1), empty)
+
+	if got := names(snaps); got != "proximotrem" {
+		t.Errorf("sources = %s, want proximotrem", got)
+	}
+	if !strings.Contains(logs, "source=cptm-novo") {
+		t.Errorf("logs = %q, want the empty source logged", logs)
+	}
+}
+
 // R4.3
 func TestCollectRunsTheSourcesInParallel(t *testing.T) {
 	var sources []StatusSource

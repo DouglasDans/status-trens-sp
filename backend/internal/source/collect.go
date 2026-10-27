@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,32 +14,29 @@ type result struct {
 }
 
 // Collect fetches every source at once and returns the snapshots of the ones
-// that answered, in the order given (the priority Merge uses). Each source
-// gets its own timeout, so the cycle takes as long as the slowest source up
-// to that limit, never the sum; a source that ignores its context is
-// abandoned when the limit passes. Every failure and every label no rule
-// recognizes is logged.
+// that answered, in the order given (the priority Merge uses). Every source
+// gets the same deadline, timeout from now, so the cycle takes as long as the
+// slowest source up to that limit, never the sum; any source that ignores its
+// context is abandoned when the deadline passes. A source answering with no
+// line counts as failed. Every failure and every label no rule recognizes is
+// logged.
 func Collect(ctx context.Context, sources []StatusSource, timeout time.Duration, logger *slog.Logger) []Snapshot {
+	ctx, cancel := context.WithTimeout(ctx, timeout) // one deadline shared by every source
+	defer cancel()
 	results := make([]chan result, len(sources))
 	for i, s := range sources {
 		results[i] = make(chan result, 1) // buffered: an abandoned fetch never blocks
 		go func() {
-			ctx, cancel := context.WithTimeout(ctx, timeout)
-			defer cancel()
 			snap, err := s.Fetch(ctx)
 			results[i] <- result{snap, err}
 		}()
 	}
 
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
 	var snaps []Snapshot
 	for i, s := range sources {
-		var r result
-		select {
-		case r = <-results[i]:
-		case <-deadline.C:
-			r = result{err: context.DeadlineExceeded}
+		r := wait(ctx, results[i])
+		if r.err == nil && len(r.snap.Readings) == 0 {
+			r.err = errors.New("answered with no line")
 		}
 		if r.err != nil {
 			logger.Warn("source failed", "source", s.Name(), "error", r.err)
@@ -52,6 +50,24 @@ func Collect(ctx context.Context, sources []StatusSource, timeout time.Duration,
 		snaps = append(snaps, r.snap)
 	}
 	return snaps
+}
+
+// wait returns the source's result, or a timeout once the shared deadline has
+// passed. Every source is waited on against the same deadline, so after it
+// each remaining source is abandoned at once; an answer already there is
+// always taken first.
+func wait(ctx context.Context, ch <-chan result) result {
+	select {
+	case r := <-ch:
+		return r
+	default:
+	}
+	select {
+	case r := <-ch:
+		return r
+	case <-ctx.Done():
+		return result{err: ctx.Err()}
+	}
 }
 
 // Timeout is how long each source gets per cycle. The sources usually answer

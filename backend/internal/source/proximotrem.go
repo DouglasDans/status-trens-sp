@@ -29,6 +29,8 @@ func NewProximoTrem(baseURL string, client *http.Client) *ProximoTrem {
 	return &ProximoTrem{baseURL: baseURL, client: client}
 }
 
+func (p *ProximoTrem) Name() string { return "proximotrem" }
+
 type proximoTremResponse struct {
 	Status  bool
 	Message string
@@ -45,10 +47,10 @@ type proximoTremResponse struct {
 func (p *ProximoTrem) Fetch(ctx context.Context) (Snapshot, error) {
 	var body proximoTremResponse
 	if err := getJSON(ctx, p.client, p.baseURL+"/lines", &body); err != nil {
-		return Snapshot{}, fmt.Errorf("proximotrem: %w", err)
+		return Snapshot{}, fmt.Errorf("%s: %w", p.Name(), err)
 	}
 	if !body.Status {
-		return Snapshot{}, fmt.Errorf("proximotrem: response status false: %q", body.Message)
+		return Snapshot{}, fmt.Errorf("%s: response status false: %q", p.Name(), body.Message)
 	}
 
 	readings := make([]Reading, 0, len(body.Data))
@@ -71,5 +73,5 @@ func (p *ProximoTrem) Fetch(ctx context.Context) (Snapshot, error) {
 			Description: cleanDescription(l.StatusLabel, description),
 		})
 	}
-	return Snapshot{Source: "proximotrem", Readings: readings}, nil
+	return Snapshot{Source: p.Name(), Readings: readings}, nil
 }

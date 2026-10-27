@@ -23,6 +23,8 @@ func NewCPTM(url string, client *http.Client) *CPTM {
 	return &CPTM{url: url, client: client}
 }
 
+func (c *CPTM) Name() string { return "cptm" }
+
 type cptmLine struct {
 	LinhaId   int
 	Nome      string
@@ -33,7 +35,7 @@ type cptmLine struct {
 func (c *CPTM) Fetch(ctx context.Context) (Snapshot, error) {
 	var lines []cptmLine
 	if err := getJSON(ctx, c.client, c.url, &lines); err != nil {
-		return Snapshot{}, fmt.Errorf("cptm: %w", err)
+		return Snapshot{}, fmt.Errorf("%s: %w", c.Name(), err)
 	}
 
 	readings := make([]Reading, 0, len(lines))
@@ -48,5 +50,5 @@ func (c *CPTM) Fetch(ctx context.Context) (Snapshot, error) {
 			Description: cleanDescription(l.Status, l.Descricao),
 		})
 	}
-	return Snapshot{Source: "cptm", Readings: readings}, nil
+	return Snapshot{Source: c.Name(), Readings: readings}, nil
 }

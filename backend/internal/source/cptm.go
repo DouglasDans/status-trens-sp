@@ -11,7 +11,8 @@ import (
 // CPTMURL is the production URL of the CPTM mobile app endpoint.
 const CPTMURL = "http://apps.cptm.sp.gov.br:8080/AppMobileService/api/LinhasMetropolitanas"
 
-// CPTM is the fallback source: government endpoint, 11 lines (no 13, 15, 17).
+// CPTM is the legacy CPTM mobile app endpoint: 11 lines, Metrô and
+// concessions included (no 6, 13, 15, 17).
 // It uses content negotiation and answers XML to browsers, so the client
 // always asks for JSON and rejects anything else.
 type CPTM struct {

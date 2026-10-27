@@ -46,7 +46,7 @@ func ok(name string, codes ...int) *namedFake {
 	return &namedFake{name: name, snap: Snapshot{Readings: readings}}
 }
 
-func collect(t *testing.T, timeout time.Duration, sources ...Named) ([]Snapshot, string, time.Duration) {
+func collect(t *testing.T, timeout time.Duration, sources ...StatusSource) ([]Snapshot, string, time.Duration) {
 	t.Helper()
 	var logs bytes.Buffer
 	start := time.Now()
@@ -104,7 +104,7 @@ func TestCollectAbandonsASourceThatIgnoresTheContext(t *testing.T) {
 
 // R4.3
 func TestCollectRunsTheSourcesInParallel(t *testing.T) {
-	var sources []Named
+	var sources []StatusSource
 	for _, n := range []string{"proximotrem", "metro", "cptm-novo", "cptm"} {
 		f := ok(n, 1)
 		f.delay = 100 * time.Millisecond

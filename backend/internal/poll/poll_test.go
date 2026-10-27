@@ -104,7 +104,7 @@ func setup() (*Poller, *fakeSource, *fakeStore, *fakeNotifier) {
 func setupMany(count int) (*Poller, []*fakeSource, *fakeStore, *fakeNotifier, *fakeBoards, *fakeClock) {
 	st, n, b, clock := &fakeStore{lines: map[int]status.Memory{}}, &fakeNotifier{}, &fakeBoards{}, &fakeClock{t0}
 	var srcs []*fakeSource
-	var named []source.Named
+	var named []source.StatusSource
 	for i := range count {
 		s := &fakeSource{name: []string{"proximotrem", "metro", "cptm-novo", "cptm"}[i]}
 		srcs = append(srcs, s)

@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-// Named is a source that knows its own name, so its failure can be logged
-// even when it returns no snapshot.
-type Named interface {
-	StatusSource
-	Name() string
-}
-
 type result struct {
 	snap Snapshot
 	err  error
@@ -25,7 +18,7 @@ type result struct {
 // to that limit, never the sum; a source that ignores its context is
 // abandoned when the limit passes. Every failure and every label no rule
 // recognizes is logged.
-func Collect(ctx context.Context, sources []Named, timeout time.Duration, logger *slog.Logger) []Snapshot {
+func Collect(ctx context.Context, sources []StatusSource, timeout time.Duration, logger *slog.Logger) []Snapshot {
 	results := make([]chan result, len(sources))
 	for i, s := range sources {
 		results[i] = make(chan result, 1) // buffered: an abandoned fetch never blocks
@@ -68,8 +61,8 @@ const Timeout = 4 * time.Second
 
 // All is every source, in priority order: when sources agree on the state,
 // the earlier one's text is shown.
-func All(client *http.Client, logger *slog.Logger) []Named {
-	return []Named{
+func All(client *http.Client, logger *slog.Logger) []StatusSource {
+	return []StatusSource{
 		NewProximoTrem(ProximoTremURL, client),
 		NewMetro(MetroURL, client, logger),
 		NewCPTMNovo(CPTMNovoURL, client),

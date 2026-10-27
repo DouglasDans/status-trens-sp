@@ -35,8 +35,8 @@ type Notifier interface {
 }
 
 type Poller struct {
-	Sources  []source.Named // in priority order
-	Timeout  time.Duration  // per source
+	Sources  []source.StatusSource // in priority order
+	Timeout  time.Duration         // per source
 	Store    Store
 	Boards   BoardStore
 	Notifier Notifier

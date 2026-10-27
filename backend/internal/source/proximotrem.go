@@ -19,7 +19,8 @@ var proximoTremCodes = map[string]status.State{
 	"AtividadeProgramada": status.Reduzida,
 }
 
-// ProximoTrem is the primary source: no auth, covers all 15 lines.
+// ProximoTrem has no auth and covers every line; it comes first in the
+// merge priority.
 type ProximoTrem struct {
 	baseURL string
 	client  *http.Client

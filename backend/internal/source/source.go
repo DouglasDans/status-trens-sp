@@ -5,7 +5,6 @@ package source
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -37,24 +36,11 @@ type Snapshot struct {
 }
 
 // StatusSource is anything that can report the current status of the lines.
+// It knows its own name, so its failure can be logged even when it returns
+// no snapshot.
 type StatusSource interface {
 	Fetch(ctx context.Context) (Snapshot, error)
-}
-
-// Fallback tries each source in order and returns the first successful
-// snapshot.
-type Fallback []StatusSource
-
-func (f Fallback) Fetch(ctx context.Context) (Snapshot, error) {
-	var errs []error
-	for _, s := range f {
-		snap, err := s.Fetch(ctx)
-		if err == nil {
-			return snap, nil
-		}
-		errs = append(errs, err)
-	}
-	return Snapshot{}, fmt.Errorf("all sources failed: %w", errors.Join(errs...))
+	Name() string
 }
 
 // cleanDescription drops descriptions that only repeat the label

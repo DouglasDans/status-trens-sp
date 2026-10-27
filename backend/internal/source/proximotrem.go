@@ -9,7 +9,7 @@ import (
 )
 
 // ProximoTremURL is the production base URL of the Próximo Trem API.
-const ProximoTremURL = "https://apim-proximotrem-prd-brazilsouth-001.azure-api.net/api/v1"
+const ProximoTremURL = "https://fde-proximotrem-prd-hhbqdtdzdyhtgxhr.a01.azurefd.net/api/v1"
 
 // proximoTremCodes maps the source's StatusCode enum. Unknown codes fall back
 // to normalizing the StatusLabel text.

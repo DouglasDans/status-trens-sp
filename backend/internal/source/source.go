@@ -27,6 +27,7 @@ type Reading struct {
 	Recognized  bool   // false when the source label matched no normalization rule
 	Label       string // raw label from the source, kept for logging and display
 	Description string
+	Source      string // set by Merge: the source whose reading won
 }
 
 // Snapshot is the set of readings returned by one source in one fetch.
